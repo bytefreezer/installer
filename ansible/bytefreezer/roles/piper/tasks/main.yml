@@ -1,0 +1,37 @@
+---
+# ByteFreezer Piper Role
+
+- name: Create piper directories
+  file:
+    path: "{{ bytefreezer_config_dir }}/piper"
+    state: directory
+    mode: '0755'
+
+- name: Deploy piper configuration
+  template:
+    src: config.yaml.j2
+    dest: "{{ bytefreezer_config_dir }}/piper/config.yaml"
+    mode: '0600'
+  notify: restart piper
+
+- name: Deploy piper systemd service
+  template:
+    src: piper.service.j2
+    dest: /etc/systemd/system/bytefreezer-piper.service
+    mode: '0644'
+  notify:
+    - reload systemd
+    - restart piper
+
+- name: Pull piper image
+  docker_image:
+    name: "{{ image_registry }}/bytefreezer-piper:{{ image_tag }}"
+    source: pull
+    force_source: yes
+
+- name: Start piper service
+  systemd:
+    name: bytefreezer-piper
+    state: started
+    enabled: yes
+    daemon_reload: yes

@@ -1,0 +1,30 @@
+# ByteFreezer Prometheus Configuration
+# Auto-configured to scrape ByteFreezer services
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # ByteFreezer Receiver metrics
+  - job_name: 'bytefreezer-receiver'
+    static_configs:
+      - targets: ['receiver:9091']
+    metrics_path: /metrics
+
+  # ByteFreezer Piper metrics
+  - job_name: 'bytefreezer-piper'
+    static_configs:
+      - targets: ['piper:9092']
+    metrics_path: /metrics
+
+  # ByteFreezer Packer metrics
+  - job_name: 'bytefreezer-packer'
+    static_configs:
+      - targets: ['packer:9093']
+    metrics_path: /metrics
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

@@ -1,0 +1,25 @@
+[Unit]
+Description=MinIO Object Storage
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+
+ExecStartPre=-/usr/bin/docker stop bytefreezer-minio
+ExecStartPre=-/usr/bin/docker rm bytefreezer-minio
+
+ExecStart=/usr/bin/docker run --rm \
+  --name bytefreezer-minio \
+  --network host \
+  -v {{ minio_data_dir }}:/data \
+  -e MINIO_ROOT_USER={{ minio_root_user }} \
+  -e MINIO_ROOT_PASSWORD={{ minio_root_password }} \
+  minio/minio:RELEASE.2024-01-16T16-07-38Z server /data --console-address ":9001"
+
+ExecStop=/usr/bin/docker stop bytefreezer-minio
+
+[Install]
+WantedBy=multi-user.target

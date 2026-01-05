@@ -1,0 +1,96 @@
+{{- if .Values.packer.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bytefreezer.packer.fullname" . }}
+  labels:
+    {{- include "bytefreezer.packer.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.packer.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "bytefreezer.packer.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/packer/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "bytefreezer.packer.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "bytefreezer.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: packer
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ include "bytefreezer.imageRegistry" . }}{{ .Values.packer.image.repository }}:{{ .Values.packer.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.packer.image.pullPolicy }}
+          args:
+            - --config=/etc/bytefreezer/config.yaml
+          ports:
+            - name: api
+              containerPort: {{ .Values.packer.service.apiPort }}
+              protocol: TCP
+            {{- if .Values.monitoring.enabled }}
+            - name: metrics
+              containerPort: 9093
+              protocol: TCP
+            {{- end }}
+          env:
+            {{- if not .Values.s3.useIAMRole }}
+            - name: PACKER_S3SOURCE_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bytefreezer.s3SecretName" . }}
+                  key: accessKey
+            - name: PACKER_S3SOURCE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bytefreezer.s3SecretName" . }}
+                  key: secretKey
+            {{- end }}
+            - name: PACKER_CONTROL_SERVICE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bytefreezer.controlSecretName" . }}
+                  key: apiKey
+                  optional: true
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: api
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: api
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.packer.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/bytefreezer
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "bytefreezer.packer.fullname" . }}
+      {{- with .Values.packer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.packer.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.packer.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

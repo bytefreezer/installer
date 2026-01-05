@@ -1,0 +1,39 @@
+---
+# Prometheus Role
+
+- name: Create prometheus directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ bytefreezer_config_dir }}/prometheus"
+    - "{{ prometheus_data_dir }}"
+
+- name: Deploy prometheus configuration
+  template:
+    src: prometheus.yml.j2
+    dest: "{{ bytefreezer_config_dir }}/prometheus/prometheus.yml"
+    mode: '0644'
+  notify: restart prometheus
+
+- name: Deploy prometheus systemd service
+  template:
+    src: prometheus.service.j2
+    dest: /etc/systemd/system/bytefreezer-prometheus.service
+    mode: '0644'
+  notify:
+    - reload systemd
+    - restart prometheus
+
+- name: Pull prometheus image
+  docker_image:
+    name: prom/prometheus:v2.48.0
+    source: pull
+
+- name: Start prometheus service
+  systemd:
+    name: bytefreezer-prometheus
+    state: started
+    enabled: yes
+    daemon_reload: yes

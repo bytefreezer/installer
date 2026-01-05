@@ -1,0 +1,32 @@
+# ByteFreezer Packer Configuration
+# Managed by Ansible
+
+server:
+  api_port: {{ packer_api_port }}
+  metrics_port: {{ packer_metrics_port }}
+
+s3_source:
+  endpoint: "{{ s3_endpoint }}"
+  region: "{{ s3_region }}"
+  bucket: "{{ s3_buckets.piper }}"
+  ssl: {{ s3_use_ssl | lower }}
+
+s3_destination:
+  endpoint: "{{ s3_endpoint }}"
+  region: "{{ s3_region }}"
+  bucket: "{{ s3_buckets.packer }}"
+  ssl: {{ s3_use_ssl | lower }}
+
+parquet:
+  max_file_size_mb: {{ packer_parquet_max_size_mb }}
+  timeout_seconds: 300
+  compression: snappy
+
+control_service:
+  enabled: true
+  control_url: "{{ control_service_url }}"
+  timeout_seconds: 30
+
+health_reporting:
+  enabled: true
+  report_interval: 30

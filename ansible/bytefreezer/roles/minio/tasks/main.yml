@@ -1,0 +1,50 @@
+---
+# MinIO Role
+
+- name: Create minio directories
+  file:
+    path: "{{ minio_data_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Deploy minio systemd service
+  template:
+    src: minio.service.j2
+    dest: /etc/systemd/system/bytefreezer-minio.service
+    mode: '0644'
+  notify:
+    - reload systemd
+    - restart minio
+
+- name: Pull minio image
+  docker_image:
+    name: minio/minio:RELEASE.2024-01-16T16-07-38Z
+    source: pull
+
+- name: Start minio service
+  systemd:
+    name: bytefreezer-minio
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Wait for MinIO to be ready
+  wait_for:
+    port: 9000
+    delay: 5
+    timeout: 60
+
+- name: Create buckets
+  docker_container:
+    name: minio-init
+    image: minio/mc:latest
+    command: >
+      sh -c "
+      mc alias set local http://localhost:9000 {{ minio_root_user }} {{ minio_root_password }};
+      mc mb --ignore-existing local/{{ s3_buckets.intake }};
+      mc mb --ignore-existing local/{{ s3_buckets.piper }};
+      mc mb --ignore-existing local/{{ s3_buckets.packer }};
+      mc mb --ignore-existing local/{{ s3_buckets.geoip }};
+      "
+    network_mode: host
+    auto_remove: yes

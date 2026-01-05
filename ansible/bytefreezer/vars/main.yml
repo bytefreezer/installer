@@ -1,0 +1,57 @@
+---
+# ByteFreezer Main Variables
+
+# Docker Installation
+install_docker: true
+docker_users:
+  - "{{ ansible_user }}"
+
+# Container Images
+image_registry: ghcr.io/bytefreezer
+image_tag: latest
+
+# S3 Configuration
+s3_endpoint: "minio:9000"
+s3_region: us-east-1
+s3_use_ssl: false
+s3_buckets:
+  intake: intake
+  piper: piper
+  packer: packer
+  geoip: geoip
+
+# MinIO (set to true if no external S3)
+minio_enabled: false
+minio_root_user: minioadmin
+minio_root_password: "{{ vault_minio_root_password | default('minioadmin') }}"
+minio_data_dir: /opt/bytefreezer/minio/data
+
+# Control Service
+control_service_url: https://api.bytefreezer.com
+control_service_api_key: "{{ vault_control_service_api_key }}"
+
+# Receiver Configuration
+receiver_webhook_port: 8080
+receiver_api_port: 8081
+receiver_metrics_port: 9091
+receiver_spool_dir: /opt/bytefreezer/receiver/spool
+
+# Piper Configuration
+piper_api_port: 8082
+piper_metrics_port: 9092
+piper_max_concurrent_jobs: 10
+
+# Packer Configuration
+packer_api_port: 8083
+packer_metrics_port: 9093
+packer_parquet_max_size_mb: 128
+
+# Monitoring
+monitoring_enabled: false
+prometheus_retention: 15d
+prometheus_data_dir: /opt/bytefreezer/prometheus/data
+
+# Data directories
+bytefreezer_base_dir: /opt/bytefreezer
+bytefreezer_config_dir: "{{ bytefreezer_base_dir }}/config"
+bytefreezer_data_dir: "{{ bytefreezer_base_dir }}/data"

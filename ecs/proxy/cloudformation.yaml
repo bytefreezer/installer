@@ -1,0 +1,295 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ByteFreezer Proxy - ECS Fargate Deployment for Edge Data Collection
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - production
+      - staging
+      - development
+
+  SiteName:
+    Type: String
+    Description: Name for this proxy site (e.g., us-east, datacenter-1)
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC to deploy into
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Subnets for ECS tasks (minimum 2 for NLB)
+
+  ImageTag:
+    Type: String
+    Default: latest
+    Description: Docker image tag for ByteFreezer proxy
+
+  ImageRegistry:
+    Type: String
+    Default: ghcr.io/bytefreezer
+    Description: Docker image registry
+
+  ReceiverUrl:
+    Type: String
+    Description: URL of ByteFreezer receiver webhook endpoint
+
+  ControlServiceUrl:
+    Type: String
+    Description: ByteFreezer control service URL
+
+  ControlServiceApiKeyArn:
+    Type: String
+    Description: ARN of Secrets Manager secret containing control service API key
+
+  DesiredCount:
+    Type: Number
+    Default: 1
+    MinValue: 1
+
+  UdpPort:
+    Type: Number
+    Default: 5514
+    Description: UDP port for syslog collection
+
+Resources:
+  # ECS Cluster
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub 'bytefreezer-proxy-${SiteName}-${Environment}'
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+
+  # CloudWatch Log Group
+  ProxyLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/ecs/bytefreezer-proxy-${SiteName}-${Environment}'
+      RetentionInDays: 30
+
+  # IAM Roles
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'bf-proxy-exec-${SiteName}-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: SecretsAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref ControlServiceApiKeyArn
+
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'bf-proxy-task-${SiteName}-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+
+  # Security Group
+  ProxySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub 'bytefreezer-proxy-${SiteName}-${Environment}'
+      GroupDescription: Security group for ByteFreezer Proxy
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: udp
+          FromPort: !Ref UdpPort
+          ToPort: !Ref UdpPort
+          CidrIp: 0.0.0.0/0
+          Description: UDP syslog port
+        - IpProtocol: tcp
+          FromPort: 8008
+          ToPort: 8008
+          CidrIp: 0.0.0.0/0
+          Description: API port
+
+  # Network Load Balancer (required for UDP)
+  ProxyNLB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub 'bf-proxy-${SiteName}-${Environment}'
+      Type: network
+      Scheme: internet-facing
+      Subnets: !Ref SubnetIds
+
+  # UDP Target Group
+  UdpTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub 'bf-proxy-udp-${SiteName}-${Environment}'
+      Port: !Ref UdpPort
+      Protocol: UDP
+      VpcId: !Ref VpcId
+      TargetType: ip
+      HealthCheckEnabled: true
+      HealthCheckProtocol: TCP
+      HealthCheckPort: '8008'
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+
+  # UDP Listener
+  UdpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ProxyNLB
+      Port: !Ref UdpPort
+      Protocol: UDP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref UdpTargetGroup
+
+  # TCP Target Group (for health check API)
+  TcpTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub 'bf-proxy-tcp-${SiteName}-${Environment}'
+      Port: 8008
+      Protocol: TCP
+      VpcId: !Ref VpcId
+      TargetType: ip
+      HealthCheckEnabled: true
+      HealthCheckProtocol: TCP
+      HealthCheckPort: '8008'
+
+  # TCP Listener (for API access)
+  TcpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ProxyNLB
+      Port: 8008
+      Protocol: TCP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TcpTargetGroup
+
+  # Proxy Task Definition
+  ProxyTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub 'bytefreezer-proxy-${SiteName}-${Environment}'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: '512'
+      Memory: '1024'
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      ContainerDefinitions:
+        - Name: proxy
+          Image: !Sub '${ImageRegistry}/bytefreezer-proxy:${ImageTag}'
+          Essential: true
+          PortMappings:
+            - ContainerPort: !Ref UdpPort
+              Protocol: udp
+            - ContainerPort: 8008
+              Protocol: tcp
+          Environment:
+            - Name: PROXY_RECEIVER_URL
+              Value: !Ref ReceiverUrl
+            - Name: PROXY_CONTROL_SERVICE_URL
+              Value: !Ref ControlServiceUrl
+            - Name: PROXY_API_PORT
+              Value: '8008'
+            - Name: PROXY_UDP_ENABLED
+              Value: 'true'
+            - Name: PROXY_UDP_PORT
+              Value: !Ref UdpPort
+            - Name: PROXY_BATCHING_ENABLED
+              Value: 'true'
+            - Name: PROXY_BATCHING_MAX_LINES
+              Value: '10000'
+            - Name: PROXY_BATCHING_MAX_BYTES
+              Value: '10485760'
+            - Name: PROXY_BATCHING_TIMEOUT_SECONDS
+              Value: '30'
+            - Name: PROXY_SPOOLING_ENABLED
+              Value: 'true'
+            - Name: PROXY_SPOOLING_MAX_SIZE_BYTES
+              Value: '1073741824'
+            - Name: PROXY_HEALTH_REPORTING_ENABLED
+              Value: 'true'
+            - Name: PROXY_HEALTH_REPORTING_INTERVAL
+              Value: '30'
+          Secrets:
+            - Name: PROXY_CONTROL_SERVICE_API_KEY
+              ValueFrom: !Ref ControlServiceApiKeyArn
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ProxyLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: proxy
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - curl -f http://localhost:8008/api/v1/health || exit 1
+            Interval: 30
+            Timeout: 10
+            Retries: 3
+            StartPeriod: 30
+
+  # Proxy Service
+  ProxyService:
+    Type: AWS::ECS::Service
+    DependsOn:
+      - UdpListener
+      - TcpListener
+    Properties:
+      ServiceName: !Sub 'bytefreezer-proxy-${SiteName}-${Environment}'
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref ProxyTaskDefinition
+      DesiredCount: !Ref DesiredCount
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets: !Ref SubnetIds
+          SecurityGroups:
+            - !Ref ProxySecurityGroup
+      LoadBalancers:
+        - ContainerName: proxy
+          ContainerPort: !Ref UdpPort
+          TargetGroupArn: !Ref UdpTargetGroup
+        - ContainerName: proxy
+          ContainerPort: 8008
+          TargetGroupArn: !Ref TcpTargetGroup
+
+Outputs:
+  ClusterName:
+    Description: ECS Cluster Name
+    Value: !Ref ECSCluster
+
+  ProxyEndpoint:
+    Description: Proxy UDP endpoint for sending data
+    Value: !Sub '${ProxyNLB.DNSName}:${UdpPort}'
+
+  ProxyApiEndpoint:
+    Description: Proxy API endpoint for health checks
+    Value: !Sub 'http://${ProxyNLB.DNSName}:8008'
+
+  NLBDnsName:
+    Description: Network Load Balancer DNS name
+    Value: !GetAtt ProxyNLB.DNSName

@@ -1,0 +1,77 @@
+app:
+  name: "bytefreezer-piper"
+  version: "1.0.0"
+  log_level: "info"
+  deployment_type: "on_prem"
+
+server:
+  api_port: 8082
+
+s3_source:
+  bucket_name: "intake"
+  region: "us-east-1"
+  endpoint: "minio:9000"
+  ssl: false
+  use_iam_role: false
+  poll_interval: "30s"
+
+s3_destination:
+  bucket_name: "piper"
+  region: "us-east-1"
+  endpoint: "minio:9000"
+  ssl: false
+  use_iam_role: false
+
+s3_geoip:
+  bucket_name: "geoip"
+  region: "us-east-1"
+  endpoint: "minio:9000"
+  ssl: false
+  use_iam_role: false
+
+processing:
+  max_concurrent_jobs: 10
+  job_timeout_seconds: 600
+  retry_attempts: 3
+  retry_backoff: "exponential"
+  buffer_size: 1000
+
+pipeline:
+  config_refresh_interval: "5m"
+  geoip_database_path: "/opt/geoip"
+  geoip_city_database: "GeoLite2-City.mmdb"
+  geoip_country_database: "GeoLite2-Country.mmdb"
+  enable_geoip: false
+
+control_service:
+  enabled: true
+  control_url: ""  # Set via CONTROL_URL env or edit here
+  timeout_seconds: 30
+
+monitoring:
+  enabled: false
+  mode: "prometheus"
+  push_interval_seconds: 15
+  metrics_host: "0.0.0.0"
+  metrics_port: 9092
+  service_name: "bytefreezer-piper"
+
+housekeeping:
+  enabled: true
+  intervalseconds: 300
+
+dlq:
+  enabled: true
+  retry_attempts: 4
+  retry_interval_seconds: 60
+  cleanup_interval_seconds: 3600
+  max_age_days: 7
+
+health_reporting:
+  enabled: true
+  report_interval: 30
+  timeout_seconds: 10
+  register_on_startup: true
+
+error_tracking:
+  enabled: true

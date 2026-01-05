@@ -1,0 +1,29 @@
+# ByteFreezer Receiver Configuration
+# Managed by Ansible
+
+server:
+  webhook_port: {{ receiver_webhook_port }}
+  api_port: {{ receiver_api_port }}
+  metrics_port: {{ receiver_metrics_port }}
+
+s3:
+  endpoint: "{{ s3_endpoint }}"
+  region: "{{ s3_region }}"
+  bucket: "{{ s3_buckets.intake }}"
+  ssl: {{ s3_use_ssl | lower }}
+
+spooling:
+  enabled: true
+  directory: "/var/spool/bytefreezer-receiver"
+  max_size_bytes: 1073741824
+  retry_attempts: 3
+  retry_interval_seconds: 60
+
+control_service:
+  enabled: true
+  control_url: "{{ control_service_url }}"
+  timeout_seconds: 30
+
+health_reporting:
+  enabled: true
+  report_interval: 30

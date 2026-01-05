@@ -1,0 +1,17 @@
+apiVersion: v2
+name: bytefreezer
+description: ByteFreezer - Data ingestion, processing, and analytics platform
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - data-ingestion
+  - data-processing
+  - observability
+  - logging
+maintainers:
+  - name: ByteFreezer Team
+home: https://bytefreezer.com
+sources:
+  - https://github.com/bytefreezer
+dependencies: []

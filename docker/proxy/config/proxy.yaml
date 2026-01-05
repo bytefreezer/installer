@@ -1,0 +1,59 @@
+app:
+  name: "bytefreezer-proxy"
+  version: "1.0.0"
+
+server:
+  api_port: 8008
+
+receiver:
+  url: ""  # Required: e.g., http://receiver.example.com:8080
+
+control_service:
+  enabled: true
+  control_url: ""  # Required: e.g., https://api.bytefreezer.com
+  timeout_seconds: 30
+
+# UDP listeners - configure based on your control service plugins
+# The proxy will only accept data on ports that have matching plugins configured
+udp:
+  enabled: true
+  # Add ports as needed based on your plugin configuration
+  # ports:
+  #   - port: 5514
+  #     name: syslog
+  #   - port: 514
+  #     name: syslog-priv
+
+# Webhook listener (optional)
+webhook:
+  enabled: false
+  port: 8080
+
+batching:
+  enabled: true
+  max_lines: 10000
+  max_bytes: 10485760
+  timeout_seconds: 30
+  compression_enabled: true
+  compression_level: 6
+
+spooling:
+  enabled: true
+  directory: "/var/spool/bytefreezer-proxy"
+  max_size_bytes: 1073741824
+  retry_attempts: 3
+  retry_interval_seconds: 60
+
+health_reporting:
+  enabled: true
+  report_interval: 30
+  timeout_seconds: 10
+  register_on_startup: true
+
+monitoring:
+  enabled: false
+  mode: "prometheus"
+  push_interval_seconds: 15
+  metrics_host: "0.0.0.0"
+  metrics_port: 9090
+  service_name: "bytefreezer-proxy"

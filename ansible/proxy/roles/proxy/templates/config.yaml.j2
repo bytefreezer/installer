@@ -1,0 +1,23 @@
+# ByteFreezer Proxy Configuration
+# Managed by Ansible
+
+server:
+  api_port: {{ proxy_api_port }}
+
+receiver:
+  url: "{{ receiver_url }}"
+
+udp_listeners:
+{% for port in udp_ports %}
+  - port: {{ port }}
+    protocol: syslog
+{% endfor %}
+
+control_service:
+  enabled: true
+  control_url: "{{ control_service_url }}"
+  timeout_seconds: 30
+
+health_reporting:
+  enabled: true
+  report_interval: 30

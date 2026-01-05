@@ -1,0 +1,16 @@
+apiVersion: v2
+name: proxy
+description: ByteFreezer Proxy - Edge data collection and forwarding
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - data-collection
+  - syslog
+  - udp
+  - proxy
+maintainers:
+  - name: ByteFreezer Team
+home: https://bytefreezer.com
+sources:
+  - https://github.com/bytefreezer

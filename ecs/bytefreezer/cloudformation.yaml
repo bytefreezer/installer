@@ -1,0 +1,528 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ByteFreezer Processing Stack - ECS Fargate Deployment
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - production
+      - staging
+      - development
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC to deploy into
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Subnets for ECS tasks (minimum 2 for ALB)
+
+  ImageTag:
+    Type: String
+    Default: latest
+    Description: Docker image tag for ByteFreezer images
+
+  ImageRegistry:
+    Type: String
+    Default: ghcr.io/bytefreezer
+    Description: Docker image registry
+
+  ControlServiceUrl:
+    Type: String
+    Description: ByteFreezer control service URL (e.g., https://api.bytefreezer.com)
+
+  ControlServiceApiKeyArn:
+    Type: String
+    Description: ARN of Secrets Manager secret containing control service API key
+
+  S3BucketPrefix:
+    Type: String
+    Default: bytefreezer
+    Description: Prefix for S3 bucket names
+
+  ReceiverDesiredCount:
+    Type: Number
+    Default: 1
+    MinValue: 1
+
+  PiperDesiredCount:
+    Type: Number
+    Default: 1
+    MinValue: 1
+
+  PackerDesiredCount:
+    Type: Number
+    Default: 1
+    MinValue: 1
+
+Resources:
+  # S3 Buckets
+  IntakeBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${S3BucketPrefix}-intake-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  PiperBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${S3BucketPrefix}-piper-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  PackerBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${S3BucketPrefix}-packer-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  GeoIPBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${S3BucketPrefix}-geoip-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # ECS Cluster
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub 'bytefreezer-${Environment}'
+      ClusterSettings:
+        - Name: containerInsights
+          Value: enabled
+
+  # CloudWatch Log Groups
+  ReceiverLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/ecs/bytefreezer-receiver-${Environment}'
+      RetentionInDays: 30
+
+  PiperLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/ecs/bytefreezer-piper-${Environment}'
+      RetentionInDays: 30
+
+  PackerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/ecs/bytefreezer-packer-${Environment}'
+      RetentionInDays: 30
+
+  # IAM Role for ECS Tasks
+  TaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'bytefreezer-task-execution-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - PolicyName: SecretsAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: !Ref ControlServiceApiKeyArn
+
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'bytefreezer-task-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: S3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:ListBucket
+                Resource:
+                  - !GetAtt IntakeBucket.Arn
+                  - !Sub '${IntakeBucket.Arn}/*'
+                  - !GetAtt PiperBucket.Arn
+                  - !Sub '${PiperBucket.Arn}/*'
+                  - !GetAtt PackerBucket.Arn
+                  - !Sub '${PackerBucket.Arn}/*'
+                  - !GetAtt GeoIPBucket.Arn
+                  - !Sub '${GeoIPBucket.Arn}/*'
+
+  # Security Groups
+  ReceiverSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub 'bytefreezer-receiver-${Environment}'
+      GroupDescription: Security group for ByteFreezer Receiver
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+          Description: Webhook port
+        - IpProtocol: tcp
+          FromPort: 8081
+          ToPort: 8081
+          CidrIp: 0.0.0.0/0
+          Description: API port
+
+  InternalSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub 'bytefreezer-internal-${Environment}'
+      GroupDescription: Security group for internal ByteFreezer services
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8082
+          ToPort: 8083
+          SourceSecurityGroupId: !Ref ReceiverSecurityGroup
+          Description: Internal API access
+
+  # Application Load Balancer for Receiver
+  ReceiverALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Sub 'bf-receiver-${Environment}'
+      Type: application
+      Scheme: internet-facing
+      Subnets: !Ref SubnetIds
+      SecurityGroups:
+        - !Ref ReceiverSecurityGroup
+
+  ReceiverTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub 'bf-receiver-${Environment}'
+      Port: 8080
+      Protocol: HTTP
+      VpcId: !Ref VpcId
+      TargetType: ip
+      HealthCheckPath: /api/v1/health
+      HealthCheckPort: '8081'
+      HealthCheckProtocol: HTTP
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 10
+
+  ReceiverListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ReceiverALB
+      Port: 8080
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ReceiverTargetGroup
+
+  # Receiver Task Definition
+  ReceiverTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub 'bytefreezer-receiver-${Environment}'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: '512'
+      Memory: '1024'
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      ContainerDefinitions:
+        - Name: receiver
+          Image: !Sub '${ImageRegistry}/bytefreezer-receiver:${ImageTag}'
+          Essential: true
+          PortMappings:
+            - ContainerPort: 8080
+              Protocol: tcp
+            - ContainerPort: 8081
+              Protocol: tcp
+          Environment:
+            - Name: RECEIVER_S3_BUCKET_NAME
+              Value: !Ref IntakeBucket
+            - Name: RECEIVER_S3_REGION
+              Value: !Ref AWS::Region
+            - Name: RECEIVER_S3_ENDPOINT
+              Value: !Sub 's3.${AWS::Region}.amazonaws.com'
+            - Name: RECEIVER_S3_SSL
+              Value: 'true'
+            - Name: RECEIVER_S3_USE_IAM_ROLE
+              Value: 'true'
+            - Name: RECEIVER_CONTROL_SERVICE_URL
+              Value: !Ref ControlServiceUrl
+            - Name: RECEIVER_API_PORT
+              Value: '8081'
+            - Name: RECEIVER_WEBHOOK_PORT
+              Value: '8080'
+          Secrets:
+            - Name: RECEIVER_CONTROL_SERVICE_API_KEY
+              ValueFrom: !Ref ControlServiceApiKeyArn
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ReceiverLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: receiver
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - curl -f http://localhost:8081/api/v1/health || exit 1
+            Interval: 30
+            Timeout: 10
+            Retries: 3
+            StartPeriod: 30
+
+  # Receiver Service
+  ReceiverService:
+    Type: AWS::ECS::Service
+    DependsOn: ReceiverListener
+    Properties:
+      ServiceName: !Sub 'bytefreezer-receiver-${Environment}'
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref ReceiverTaskDefinition
+      DesiredCount: !Ref ReceiverDesiredCount
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets: !Ref SubnetIds
+          SecurityGroups:
+            - !Ref ReceiverSecurityGroup
+      LoadBalancers:
+        - ContainerName: receiver
+          ContainerPort: 8080
+          TargetGroupArn: !Ref ReceiverTargetGroup
+
+  # Piper Task Definition
+  PiperTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub 'bytefreezer-piper-${Environment}'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: '1024'
+      Memory: '2048'
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      ContainerDefinitions:
+        - Name: piper
+          Image: !Sub '${ImageRegistry}/bytefreezer-piper:${ImageTag}'
+          Essential: true
+          PortMappings:
+            - ContainerPort: 8082
+              Protocol: tcp
+          Environment:
+            - Name: PIPER_S3_SOURCE_BUCKET_NAME
+              Value: !Ref IntakeBucket
+            - Name: PIPER_S3_SOURCE_REGION
+              Value: !Ref AWS::Region
+            - Name: PIPER_S3_SOURCE_ENDPOINT
+              Value: !Sub 's3.${AWS::Region}.amazonaws.com'
+            - Name: PIPER_S3_SOURCE_SSL
+              Value: 'true'
+            - Name: PIPER_S3_SOURCE_USE_IAM_ROLE
+              Value: 'true'
+            - Name: PIPER_S3_DESTINATION_BUCKET_NAME
+              Value: !Ref PiperBucket
+            - Name: PIPER_S3_DESTINATION_REGION
+              Value: !Ref AWS::Region
+            - Name: PIPER_S3_DESTINATION_ENDPOINT
+              Value: !Sub 's3.${AWS::Region}.amazonaws.com'
+            - Name: PIPER_S3_DESTINATION_SSL
+              Value: 'true'
+            - Name: PIPER_S3_DESTINATION_USE_IAM_ROLE
+              Value: 'true'
+            - Name: PIPER_S3_GEOIP_BUCKET_NAME
+              Value: !Ref GeoIPBucket
+            - Name: PIPER_S3_GEOIP_REGION
+              Value: !Ref AWS::Region
+            - Name: PIPER_S3_GEOIP_ENDPOINT
+              Value: !Sub 's3.${AWS::Region}.amazonaws.com'
+            - Name: PIPER_S3_GEOIP_SSL
+              Value: 'true'
+            - Name: PIPER_S3_GEOIP_USE_IAM_ROLE
+              Value: 'true'
+            - Name: PIPER_CONTROL_SERVICE_URL
+              Value: !Ref ControlServiceUrl
+            - Name: PIPER_API_PORT
+              Value: '8082'
+            - Name: PIPER_DEPLOYMENT_TYPE
+              Value: 'on_prem'
+          Secrets:
+            - Name: PIPER_CONTROL_SERVICE_API_KEY
+              ValueFrom: !Ref ControlServiceApiKeyArn
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref PiperLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: piper
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - curl -f http://localhost:8082/api/v1/health || exit 1
+            Interval: 30
+            Timeout: 10
+            Retries: 3
+            StartPeriod: 30
+
+  # Piper Service
+  PiperService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: !Sub 'bytefreezer-piper-${Environment}'
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref PiperTaskDefinition
+      DesiredCount: !Ref PiperDesiredCount
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets: !Ref SubnetIds
+          SecurityGroups:
+            - !Ref InternalSecurityGroup
+
+  # Packer Task Definition
+  PackerTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub 'bytefreezer-packer-${Environment}'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: '1024'
+      Memory: '2048'
+      ExecutionRoleArn: !GetAtt TaskExecutionRole.Arn
+      TaskRoleArn: !GetAtt TaskRole.Arn
+      ContainerDefinitions:
+        - Name: packer
+          Image: !Sub '${ImageRegistry}/bytefreezer-packer:${ImageTag}'
+          Essential: true
+          PortMappings:
+            - ContainerPort: 8083
+              Protocol: tcp
+          Environment:
+            - Name: PACKER_S3SOURCE_BUCKET_NAME
+              Value: !Ref PiperBucket
+            - Name: PACKER_S3SOURCE_REGION
+              Value: !Ref AWS::Region
+            - Name: PACKER_S3SOURCE_ENDPOINT
+              Value: !Sub 's3.${AWS::Region}.amazonaws.com'
+            - Name: PACKER_S3SOURCE_SSL
+              Value: 'true'
+            - Name: PACKER_S3SOURCE_USE_IAM_ROLE
+              Value: 'true'
+            - Name: PACKER_CONTROL_SERVICE_URL
+              Value: !Ref ControlServiceUrl
+            - Name: PACKER_API_PORT
+              Value: '8083'
+          Secrets:
+            - Name: PACKER_CONTROL_SERVICE_API_KEY
+              ValueFrom: !Ref ControlServiceApiKeyArn
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref PackerLogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: packer
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - curl -f http://localhost:8083/api/v1/health || exit 1
+            Interval: 30
+            Timeout: 10
+            Retries: 3
+            StartPeriod: 30
+
+  # Packer Service
+  PackerService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: !Sub 'bytefreezer-packer-${Environment}'
+      Cluster: !Ref ECSCluster
+      TaskDefinition: !Ref PackerTaskDefinition
+      DesiredCount: !Ref PackerDesiredCount
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets: !Ref SubnetIds
+          SecurityGroups:
+            - !Ref InternalSecurityGroup
+
+Outputs:
+  ClusterName:
+    Description: ECS Cluster Name
+    Value: !Ref ECSCluster
+    Export:
+      Name: !Sub '${AWS::StackName}-ClusterName'
+
+  ReceiverUrl:
+    Description: Receiver webhook URL for proxy configuration
+    Value: !Sub 'http://${ReceiverALB.DNSName}:8080'
+    Export:
+      Name: !Sub '${AWS::StackName}-ReceiverUrl'
+
+  IntakeBucketName:
+    Description: S3 bucket for raw data intake
+    Value: !Ref IntakeBucket
+
+  PiperBucketName:
+    Description: S3 bucket for processed data
+    Value: !Ref PiperBucket
+
+  PackerBucketName:
+    Description: S3 bucket for packed Parquet files
+    Value: !Ref PackerBucket

@@ -1,0 +1,64 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "proxy.fullname" . }}
+  labels:
+    {{- include "proxy.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    app:
+      name: "bytefreezer-proxy"
+      version: {{ .Chart.AppVersion | quote }}
+
+    server:
+      api_port: {{ .Values.service.apiPort }}
+
+    receiver:
+      base_url: {{ .Values.receiver.url | quote }}
+      timeout_seconds: 30
+      upload_worker_count: 4
+
+    control_url: {{ .Values.controlService.url | quote }}
+    config_mode: "control-only"
+
+    config_polling:
+      enabled: true
+      interval_seconds: 60
+      timeout_seconds: {{ .Values.controlService.timeoutSeconds }}
+      retry_on_error: true
+
+    batching:
+      enabled: {{ .Values.batching.enabled }}
+      max_lines: {{ .Values.batching.maxLines }}
+      max_bytes: {{ .Values.batching.maxBytes }}
+      timeout_seconds: {{ .Values.batching.timeoutSeconds }}
+      compression_enabled: {{ .Values.batching.compressionEnabled }}
+      compression_level: {{ .Values.batching.compressionLevel }}
+
+    spooling:
+      enabled: {{ .Values.spooling.enabled }}
+      directory: {{ .Values.spooling.directory | quote }}
+      max_size_bytes: {{ .Values.spooling.maxSizeBytes }}
+      retry_attempts: {{ .Values.spooling.retryAttempts }}
+      retry_interval_seconds: {{ .Values.spooling.retryIntervalSeconds }}
+      organization: "tenant_dataset"
+
+    otel:
+      enabled: {{ .Values.monitoring.enabled }}
+      mode: {{ .Values.monitoring.mode | quote }}
+      {{- if .Values.monitoring.endpoint }}
+      otlp_endpoint: {{ .Values.monitoring.endpoint | quote }}
+      {{- end }}
+      push_interval_seconds: {{ .Values.monitoring.pushIntervalSeconds }}
+      service_name: "bytefreezer-proxy"
+      metrics_host: "0.0.0.0"
+      metrics_port: {{ .Values.monitoring.metricsPort }}
+
+    health_reporting:
+      enabled: {{ .Values.healthReporting.enabled }}
+      report_interval: {{ .Values.healthReporting.reportInterval }}
+      timeout_seconds: 10
+      register_on_startup: true
+
+    error_tracking:
+      enabled: true

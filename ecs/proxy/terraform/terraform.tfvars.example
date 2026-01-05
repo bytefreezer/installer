@@ -1,0 +1,40 @@
+# ByteFreezer Proxy - Terraform Variables
+# Copy this file to terraform.tfvars and customize
+
+environment = "production"
+site_name   = "us-east"
+
+# Required: VPC and Subnets
+vpc_id     = "vpc-xxxxxxxxx"
+subnet_ids = ["subnet-xxxxxxxx", "subnet-yyyyyyyy"]
+
+# Required: Receiver URL (get from processing stack output)
+receiver_url = "http://receiver-alb-xxxxx.us-east-1.elb.amazonaws.com:8080"
+
+# Required: Control Service
+control_service_url         = "https://api.bytefreezer.com"
+control_service_api_key_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:bytefreezer/control-api-key-xxxxxx"
+
+# Optional: Image configuration
+image_registry = "ghcr.io/bytefreezer"
+image_tag      = "latest"
+
+# Optional: Service scaling
+desired_count = 1
+
+# Optional: UDP port
+udp_port = 5514
+
+# Optional: Task sizing
+cpu    = 512
+memory = 1024
+
+# Optional: Log retention
+log_retention_days = 30
+
+# Optional: Tags
+tags = {
+  Project = "ByteFreezer"
+  Team    = "Platform"
+  Site    = "us-east"
+}

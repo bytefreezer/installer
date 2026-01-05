@@ -1,0 +1,44 @@
+---
+# ByteFreezer Processing Stack - Ansible Playbook
+# Deploy receiver, piper, packer to bare metal or VMs
+
+- name: Deploy ByteFreezer Processing Stack
+  hosts: bytefreezer
+  become: true
+  vars_files:
+    - vars/main.yml
+    - vars/secrets.yml
+
+  pre_tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+
+  roles:
+    - role: docker
+      when: install_docker | default(true)
+    - role: minio
+      when: minio_enabled | default(false)
+    - role: receiver
+    - role: piper
+    - role: packer
+    - role: prometheus
+      when: monitoring_enabled | default(false)
+
+  post_tasks:
+    - name: Display service status
+      debug:
+        msg: |
+          ByteFreezer Processing Stack deployed successfully!
+
+          Receiver: http://{{ ansible_host }}:8080 (webhook), http://{{ ansible_host }}:8081 (API)
+          Piper: http://{{ ansible_host }}:8082
+          Packer: http://{{ ansible_host }}:8083
+          {% if minio_enabled %}
+          MinIO: http://{{ ansible_host }}:9000 (S3), http://{{ ansible_host }}:9001 (Console)
+          {% endif %}
+          {% if monitoring_enabled %}
+          Prometheus: http://{{ ansible_host }}:9090
+          {% endif %}

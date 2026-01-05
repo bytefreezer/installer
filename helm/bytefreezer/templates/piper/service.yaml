@@ -1,0 +1,23 @@
+{{- if .Values.piper.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "bytefreezer.piper.fullname" . }}
+  labels:
+    {{- include "bytefreezer.piper.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.piper.service.type }}
+  ports:
+    - port: {{ .Values.piper.service.apiPort }}
+      targetPort: api
+      protocol: TCP
+      name: api
+    {{- if .Values.monitoring.enabled }}
+    - port: 9092
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+    {{- end }}
+  selector:
+    {{- include "bytefreezer.piper.selectorLabels" . | nindent 4 }}
+{{- end }}

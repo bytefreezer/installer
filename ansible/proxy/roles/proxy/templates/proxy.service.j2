@@ -1,0 +1,24 @@
+[Unit]
+Description=ByteFreezer Proxy
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+
+ExecStartPre=-/usr/bin/docker stop bytefreezer-proxy
+ExecStartPre=-/usr/bin/docker rm bytefreezer-proxy
+
+ExecStart=/usr/bin/docker run --rm \
+  --name bytefreezer-proxy \
+  --network host \
+  -v {{ bytefreezer_config_dir }}/proxy/config.yaml:/etc/bytefreezer/config.yaml:ro \
+  -e PROXY_CONTROL_SERVICE_API_KEY={{ vault_control_service_api_key }} \
+  {{ image_registry }}/bytefreezer-proxy:{{ image_tag }}
+
+ExecStop=/usr/bin/docker stop bytefreezer-proxy
+
+[Install]
+WantedBy=multi-user.target

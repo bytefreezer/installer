@@ -1,0 +1,40 @@
+---
+# ByteFreezer Receiver Role
+
+- name: Create receiver directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ bytefreezer_config_dir }}/receiver"
+    - "{{ receiver_spool_dir }}"
+
+- name: Deploy receiver configuration
+  template:
+    src: config.yaml.j2
+    dest: "{{ bytefreezer_config_dir }}/receiver/config.yaml"
+    mode: '0600'
+  notify: restart receiver
+
+- name: Deploy receiver systemd service
+  template:
+    src: receiver.service.j2
+    dest: /etc/systemd/system/bytefreezer-receiver.service
+    mode: '0644'
+  notify:
+    - reload systemd
+    - restart receiver
+
+- name: Pull receiver image
+  docker_image:
+    name: "{{ image_registry }}/bytefreezer-receiver:{{ image_tag }}"
+    source: pull
+    force_source: yes
+
+- name: Start receiver service
+  systemd:
+    name: bytefreezer-receiver
+    state: started
+    enabled: yes
+    daemon_reload: yes

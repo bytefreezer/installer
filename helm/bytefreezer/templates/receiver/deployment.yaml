@@ -1,0 +1,103 @@
+{{- if .Values.receiver.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bytefreezer.receiver.fullname" . }}
+  labels:
+    {{- include "bytefreezer.receiver.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.receiver.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "bytefreezer.receiver.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/receiver/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "bytefreezer.receiver.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "bytefreezer.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: receiver
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ include "bytefreezer.imageRegistry" . }}{{ .Values.receiver.image.repository }}:{{ .Values.receiver.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.receiver.image.pullPolicy }}
+          args:
+            - --config=/etc/bytefreezer/config.yaml
+          ports:
+            - name: api
+              containerPort: {{ .Values.receiver.service.apiPort }}
+              protocol: TCP
+            - name: webhook
+              containerPort: {{ .Values.receiver.service.webhookPort }}
+              protocol: TCP
+            {{- if .Values.monitoring.enabled }}
+            - name: metrics
+              containerPort: 9091
+              protocol: TCP
+            {{- end }}
+          env:
+            {{- if not .Values.s3.useIAMRole }}
+            - name: RECEIVER_S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bytefreezer.s3SecretName" . }}
+                  key: accessKey
+            - name: RECEIVER_S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bytefreezer.s3SecretName" . }}
+                  key: secretKey
+            {{- end }}
+            - name: RECEIVER_CONTROL_SERVICE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bytefreezer.controlSecretName" . }}
+                  key: apiKey
+                  optional: true
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: api
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: api
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.receiver.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/bytefreezer
+            - name: spool
+              mountPath: {{ .Values.receiver.spooling.directory }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "bytefreezer.receiver.fullname" . }}
+        - name: spool
+          emptyDir: {}
+      {{- with .Values.receiver.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.receiver.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.receiver.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

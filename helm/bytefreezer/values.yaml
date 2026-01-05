@@ -1,0 +1,321 @@
+# ByteFreezer Helm Chart Values
+# This chart deploys the ByteFreezer data processing pipeline
+
+# Global settings
+global:
+  # Image registry for all ByteFreezer images
+  imageRegistry: ""
+  # Image pull secrets
+  imagePullSecrets: []
+  # Storage class for persistent volumes
+  storageClass: ""
+  # Deployment type: "managed" or "on_prem"
+  deploymentType: "on_prem"
+
+# S3/MinIO Configuration (shared across services)
+s3:
+  endpoint: "minio:9000"
+  region: "us-east-1"
+  accessKey: ""
+  secretKey: ""
+  useSSL: false
+  useIAMRole: false
+  # Existing secret containing S3 credentials (accessKey, secretKey)
+  existingSecret: ""
+  # Bucket names
+  buckets:
+    intake: "intake"
+    piper: "piper"
+    packer: "packer"
+    geoip: "geoip"
+
+# Optional MinIO Deployment
+# Enable this if you don't have external S3/MinIO storage
+minio:
+  enabled: false
+  image:
+    repository: minio/minio
+    tag: "RELEASE.2024-01-16T16-07-38Z"
+    pullPolicy: IfNotPresent
+  # Root credentials (used if s3.accessKey/secretKey are empty)
+  rootUser: "minioadmin"
+  rootPassword: "minioadmin"
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 9000
+    consolePort: 9001
+  # Persistence
+  persistence:
+    enabled: true
+    size: 50Gi
+  # Resources
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+  # Create buckets on startup
+  createBuckets: true
+
+# Control Service Configuration
+# Note: Control plane is NOT included in this chart
+# This is for on-prem/customer deployments that connect to a managed control plane
+controlService:
+  enabled: true
+  url: ""  # e.g., https://api.bytefreezer.com
+  apiKey: ""
+  # Existing secret containing API key
+  existingSecret: ""
+  timeoutSeconds: 30
+
+# Monitoring Configuration
+monitoring:
+  # Enable metrics collection
+  enabled: false
+  # Metrics mode: "prometheus" (pull), "otlp_http" (push), "otlp_grpc" (push)
+  mode: "prometheus"
+  # External metrics endpoint (for otlp_http/otlp_grpc modes)
+  # e.g., "prometheus:9090" or "victoria-metrics:8428"
+  externalEndpoint: ""
+  # Push interval in seconds (for push modes)
+  pushIntervalSeconds: 15
+
+  # Deploy bundled Prometheus
+  # Use this if you don't have external Prometheus
+  prometheus:
+    enabled: false
+    image:
+      repository: prom/prometheus
+      tag: "v2.48.0"
+      pullPolicy: IfNotPresent
+    service:
+      type: ClusterIP
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    persistence:
+      enabled: true
+      size: 10Gi
+    retention: 15d
+    scrapeInterval: 15s
+    evaluationInterval: 15s
+
+  # Deploy bundled VictoriaMetrics (alternative to Prometheus)
+  # More memory efficient, compatible with Prometheus/Grafana
+  victoriametrics:
+    enabled: false
+    image:
+      repository: victoriametrics/victoria-metrics
+      tag: "v1.96.0"
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    persistence:
+      enabled: true
+      size: 10Gi
+    retention: 30d
+
+  # ServiceMonitor for Prometheus Operator (kube-prometheus-stack)
+  # Use this if you have Prometheus Operator installed
+  serviceMonitor:
+    enabled: false
+    # Additional labels for ServiceMonitor (for Prometheus selection)
+    labels: {}
+    # Namespace for ServiceMonitor (defaults to release namespace)
+    namespace: ""
+    # Scrape interval
+    interval: 30s
+    # Scrape timeout
+    scrapeTimeout: 10s
+
+# ============================================================================
+# Receiver Configuration
+# HTTP webhook receiver that stores raw data to S3
+# ============================================================================
+receiver:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: bytefreezer/receiver
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  # Internal API service (health checks, metrics)
+  service:
+    type: ClusterIP
+    apiPort: 8081
+    webhookPort: 8080
+
+  # External webhook service (receives data from proxies)
+  # This should be LoadBalancer for external access
+  webhookService:
+    enabled: true
+    type: LoadBalancer
+    port: 8080
+    annotations: {}
+    # loadBalancerIP: ""  # Optional: specify a static IP
+
+  # Spooling configuration
+  spooling:
+    enabled: true
+    directory: "/var/spool/bytefreezer-receiver"
+    maxSizeBytes: 1073741824
+    retryAttempts: 3
+    retryIntervalSeconds: 60
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnv: []
+
+  healthReporting:
+    enabled: true
+    reportInterval: 30
+
+# ============================================================================
+# Packer Configuration
+# Data compression and Parquet packaging
+# ============================================================================
+packer:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: bytefreezer/packer
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    apiPort: 8083
+
+  # Parquet configuration
+  parquet:
+    maxFileSizeMB: 128
+    timeoutSeconds: 300
+    compression: "snappy"
+    streamingMode: true
+    memoryBufferMB: 64
+
+  # Housekeeping
+  housekeeping:
+    enabled: true
+    intervalSeconds: 300
+
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnv: []
+
+  healthReporting:
+    enabled: true
+    reportInterval: 30
+
+# ============================================================================
+# Piper Configuration
+# Data pipeline orchestration and processing
+# ============================================================================
+piper:
+  enabled: true
+  replicaCount: 1
+  logLevel: "info"
+  pollInterval: "30s"
+  image:
+    repository: bytefreezer/piper
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    apiPort: 8082
+
+  # Processing configuration
+  processing:
+    maxConcurrentJobs: 10
+    jobTimeoutSeconds: 600
+    retryAttempts: 3
+    retryBackoff: "exponential"
+    bufferSize: 1000
+
+  # Pipeline configuration
+  pipeline:
+    configRefreshInterval: "5m"
+    geoipDatabasePath: "/opt/geoip"
+    enableGeoIP: false
+
+  # Dead Letter Queue
+  dlq:
+    enabled: true
+    retryAttempts: 4
+    retryIntervalSeconds: 60
+    cleanupIntervalSeconds: 3600
+    maxAgeDays: 7
+
+  # Housekeeping
+  housekeeping:
+    enabled: true
+    intervalSeconds: 300
+
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnv: []
+
+  healthReporting:
+    enabled: true
+    reportInterval: 30
+
+# ============================================================================
+# Service Account
+# ============================================================================
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# ============================================================================
+# Pod Security
+# ============================================================================
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false

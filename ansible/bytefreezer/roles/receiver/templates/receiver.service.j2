@@ -1,0 +1,27 @@
+[Unit]
+Description=ByteFreezer Receiver
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+
+ExecStartPre=-/usr/bin/docker stop bytefreezer-receiver
+ExecStartPre=-/usr/bin/docker rm bytefreezer-receiver
+
+ExecStart=/usr/bin/docker run --rm \
+  --name bytefreezer-receiver \
+  --network host \
+  -v {{ bytefreezer_config_dir }}/receiver/config.yaml:/etc/bytefreezer/config.yaml:ro \
+  -v {{ receiver_spool_dir }}:/var/spool/bytefreezer-receiver \
+  -e RECEIVER_S3_ACCESS_KEY={{ vault_s3_access_key | default(vault_minio_root_password | default('minioadmin')) }} \
+  -e RECEIVER_S3_SECRET_KEY={{ vault_s3_secret_key | default(vault_minio_root_password | default('minioadmin')) }} \
+  -e RECEIVER_CONTROL_SERVICE_API_KEY={{ vault_control_service_api_key }} \
+  {{ image_registry }}/bytefreezer-receiver:{{ image_tag }}
+
+ExecStop=/usr/bin/docker stop bytefreezer-receiver
+
+[Install]
+WantedBy=multi-user.target

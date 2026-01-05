@@ -1,0 +1,23 @@
+{{- if .Values.packer.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "bytefreezer.packer.fullname" . }}
+  labels:
+    {{- include "bytefreezer.packer.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.packer.service.type }}
+  ports:
+    - port: {{ .Values.packer.service.apiPort }}
+      targetPort: api
+      protocol: TCP
+      name: api
+    {{- if .Values.monitoring.enabled }}
+    - port: 9093
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+    {{- end }}
+  selector:
+    {{- include "bytefreezer.packer.selectorLabels" . | nindent 4 }}
+{{- end }}

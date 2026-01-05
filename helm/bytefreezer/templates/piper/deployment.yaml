@@ -1,0 +1,124 @@
+{{- if .Values.piper.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bytefreezer.piper.fullname" . }}
+  labels:
+    {{- include "bytefreezer.piper.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.piper.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "bytefreezer.piper.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/piper/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "bytefreezer.piper.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "bytefreezer.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: piper
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ include "bytefreezer.imageRegistry" . }}{{ .Values.piper.image.repository }}:{{ .Values.piper.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.piper.image.pullPolicy }}
+          args:
+            - --config=/etc/bytefreezer/config.yaml
+          ports:
+            - name: api
+              containerPort: {{ .Values.piper.service.apiPort }}
+              protocol: TCP
+            {{- if .Values.monitoring.enabled }}
+            - name: metrics
+              containerPort: 9092
+              protocol: TCP
+            {{- end }}
+          env:
+            {{- if not .Values.s3.useIAMRole }}
+            - name: PIPER_S3_SOURCE_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bytefreezer.s3SecretName" . }}
+                  key: accessKey
+            - name: PIPER_S3_SOURCE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bytefreezer.s3SecretName" . }}
+                  key: secretKey
+            - name: PIPER_S3_DESTINATION_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bytefreezer.s3SecretName" . }}
+                  key: accessKey
+            - name: PIPER_S3_DESTINATION_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bytefreezer.s3SecretName" . }}
+                  key: secretKey
+            - name: PIPER_S3_GEOIP_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bytefreezer.s3SecretName" . }}
+                  key: accessKey
+            - name: PIPER_S3_GEOIP_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bytefreezer.s3SecretName" . }}
+                  key: secretKey
+            {{- end }}
+            - name: PIPER_CONTROL_SERVICE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bytefreezer.controlSecretName" . }}
+                  key: apiKey
+                  optional: true
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: api
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: api
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.piper.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/bytefreezer
+            {{- if .Values.piper.pipeline.enableGeoIP }}
+            - name: geoip
+              mountPath: {{ .Values.piper.pipeline.geoipDatabasePath }}
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "bytefreezer.piper.fullname" . }}
+        {{- if .Values.piper.pipeline.enableGeoIP }}
+        - name: geoip
+          emptyDir: {}
+        {{- end }}
+      {{- with .Values.piper.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.piper.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.piper.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

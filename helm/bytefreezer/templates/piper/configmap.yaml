@@ -1,0 +1,90 @@
+{{- if .Values.piper.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "bytefreezer.piper.fullname" . }}
+  labels:
+    {{- include "bytefreezer.piper.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    app:
+      name: "bytefreezer-piper"
+      version: {{ .Chart.AppVersion | quote }}
+      log_level: {{ .Values.piper.logLevel | quote }}
+      deployment_type: {{ .Values.global.deploymentType | quote }}
+
+    server:
+      api_port: {{ .Values.piper.service.apiPort }}
+
+    s3_source:
+      bucket_name: {{ .Values.s3.buckets.intake | quote }}
+      region: {{ .Values.s3.region | quote }}
+      endpoint: {{ include "bytefreezer.s3Endpoint" . | quote }}
+      ssl: {{ .Values.s3.useSSL }}
+      use_iam_role: {{ .Values.s3.useIAMRole }}
+      poll_interval: {{ .Values.piper.pollInterval | quote }}
+
+    s3_destination:
+      bucket_name: {{ .Values.s3.buckets.piper | quote }}
+      region: {{ .Values.s3.region | quote }}
+      endpoint: {{ include "bytefreezer.s3Endpoint" . | quote }}
+      ssl: {{ .Values.s3.useSSL }}
+      use_iam_role: {{ .Values.s3.useIAMRole }}
+
+    s3_geoip:
+      bucket_name: {{ .Values.s3.buckets.geoip | quote }}
+      region: {{ .Values.s3.region | quote }}
+      endpoint: {{ include "bytefreezer.s3Endpoint" . | quote }}
+      ssl: {{ .Values.s3.useSSL }}
+      use_iam_role: {{ .Values.s3.useIAMRole }}
+
+    processing:
+      max_concurrent_jobs: {{ .Values.piper.processing.maxConcurrentJobs }}
+      job_timeout_seconds: {{ .Values.piper.processing.jobTimeoutSeconds }}
+      retry_attempts: {{ .Values.piper.processing.retryAttempts }}
+      retry_backoff: {{ .Values.piper.processing.retryBackoff | quote }}
+      buffer_size: {{ .Values.piper.processing.bufferSize }}
+
+    pipeline:
+      config_refresh_interval: {{ .Values.piper.pipeline.configRefreshInterval | quote }}
+      geoip_database_path: {{ .Values.piper.pipeline.geoipDatabasePath | quote }}
+      geoip_city_database: "GeoLite2-City.mmdb"
+      geoip_country_database: "GeoLite2-Country.mmdb"
+      enable_geoip: {{ .Values.piper.pipeline.enableGeoIP }}
+
+    control_service:
+      enabled: {{ .Values.controlService.enabled }}
+      control_url: {{ .Values.controlService.url | quote }}
+      timeout_seconds: {{ .Values.controlService.timeoutSeconds }}
+
+    monitoring:
+      enabled: {{ .Values.monitoring.enabled }}
+      mode: {{ include "bytefreezer.metricsMode" . | quote }}
+      {{- if include "bytefreezer.metricsEndpoint" . }}
+      otlp_endpoint: {{ include "bytefreezer.metricsEndpoint" . | quote }}
+      {{- end }}
+      push_interval_seconds: {{ .Values.monitoring.pushIntervalSeconds }}
+      metrics_host: "0.0.0.0"
+      metrics_port: 9092
+      service_name: "bytefreezer-piper"
+
+    housekeeping:
+      enabled: {{ .Values.piper.housekeeping.enabled }}
+      intervalseconds: {{ .Values.piper.housekeeping.intervalSeconds }}
+
+    dlq:
+      enabled: {{ .Values.piper.dlq.enabled }}
+      retry_attempts: {{ .Values.piper.dlq.retryAttempts }}
+      retry_interval_seconds: {{ .Values.piper.dlq.retryIntervalSeconds }}
+      cleanup_interval_seconds: {{ .Values.piper.dlq.cleanupIntervalSeconds }}
+      max_age_days: {{ .Values.piper.dlq.maxAgeDays }}
+
+    health_reporting:
+      enabled: {{ .Values.piper.healthReporting.enabled }}
+      report_interval: {{ .Values.piper.healthReporting.reportInterval }}
+      timeout_seconds: 10
+      register_on_startup: true
+
+    error_tracking:
+      enabled: true
+{{- end }}

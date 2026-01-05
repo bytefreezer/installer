@@ -1,0 +1,105 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.victoriametrics.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "bytefreezer.fullname" . }}-victoriametrics
+  labels:
+    {{- include "bytefreezer.labels" . | nindent 4 }}
+    app.kubernetes.io/component: victoriametrics
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8428
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "bytefreezer.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: victoriametrics
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bytefreezer.fullname" . }}-victoriametrics
+  labels:
+    {{- include "bytefreezer.labels" . | nindent 4 }}
+    app.kubernetes.io/component: victoriametrics
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "bytefreezer.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: victoriametrics
+  template:
+    metadata:
+      labels:
+        {{- include "bytefreezer.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: victoriametrics
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        fsGroup: 472
+        runAsNonRoot: true
+        runAsUser: 472
+      containers:
+        - name: victoriametrics
+          image: "{{ .Values.monitoring.victoriametrics.image.repository }}:{{ .Values.monitoring.victoriametrics.image.tag }}"
+          imagePullPolicy: {{ .Values.monitoring.victoriametrics.image.pullPolicy }}
+          args:
+            - -storageDataPath=/victoria-metrics-data
+            - -retentionPeriod={{ .Values.monitoring.victoriametrics.retention }}
+            - -httpListenAddr=:8428
+            - -opentelemetry.enabled=true
+          ports:
+            - name: http
+              containerPort: 8428
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.monitoring.victoriametrics.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /victoria-metrics-data
+      volumes:
+        - name: data
+          {{- if .Values.monitoring.victoriametrics.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "bytefreezer.fullname" . }}-victoriametrics
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+{{- if .Values.monitoring.victoriametrics.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "bytefreezer.fullname" . }}-victoriametrics
+  labels:
+    {{- include "bytefreezer.labels" . | nindent 4 }}
+    app.kubernetes.io/component: victoriametrics
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.global.storageClass }}
+  storageClassName: {{ .Values.global.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.monitoring.victoriametrics.persistence.size }}
+{{- end }}
+{{- end }}

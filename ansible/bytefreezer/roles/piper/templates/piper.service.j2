@@ -1,0 +1,30 @@
+[Unit]
+Description=ByteFreezer Piper
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+
+ExecStartPre=-/usr/bin/docker stop bytefreezer-piper
+ExecStartPre=-/usr/bin/docker rm bytefreezer-piper
+
+ExecStart=/usr/bin/docker run --rm \
+  --name bytefreezer-piper \
+  --network host \
+  -v {{ bytefreezer_config_dir }}/piper/config.yaml:/etc/bytefreezer/config.yaml:ro \
+  -e PIPER_S3_SOURCE_ACCESS_KEY={{ vault_s3_access_key | default(vault_minio_root_password | default('minioadmin')) }} \
+  -e PIPER_S3_SOURCE_SECRET_KEY={{ vault_s3_secret_key | default(vault_minio_root_password | default('minioadmin')) }} \
+  -e PIPER_S3_DESTINATION_ACCESS_KEY={{ vault_s3_access_key | default(vault_minio_root_password | default('minioadmin')) }} \
+  -e PIPER_S3_DESTINATION_SECRET_KEY={{ vault_s3_secret_key | default(vault_minio_root_password | default('minioadmin')) }} \
+  -e PIPER_S3_GEOIP_ACCESS_KEY={{ vault_s3_access_key | default(vault_minio_root_password | default('minioadmin')) }} \
+  -e PIPER_S3_GEOIP_SECRET_KEY={{ vault_s3_secret_key | default(vault_minio_root_password | default('minioadmin')) }} \
+  -e PIPER_CONTROL_SERVICE_API_KEY={{ vault_control_service_api_key }} \
+  {{ image_registry }}/bytefreezer-piper:{{ image_tag }}
+
+ExecStop=/usr/bin/docker stop bytefreezer-piper
+
+[Install]
+WantedBy=multi-user.target

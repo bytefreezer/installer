@@ -1,0 +1,29 @@
+# ByteFreezer Proxy - Docker Compose
+# Edge data collection and forwarding to receiver
+
+services:
+  proxy:
+    image: ${IMAGE_REGISTRY:-ghcr.io/bytefreezer}/bytefreezer-proxy:${IMAGE_TAG:-latest}
+    container_name: bytefreezer-proxy
+    ports:
+      - "8008:8008"      # API (health, metrics)
+      - "5514:5514/udp"  # UDP syslog (configure additional ports as needed)
+      # - "514:514/udp"  # Uncomment for privileged syslog port
+      # - "8080:8080"    # Uncomment for webhook listener
+    environment:
+      PROXY_CONTROL_SERVICE_API_KEY: ${CONTROL_API_KEY:-}
+    volumes:
+      - ./config/proxy.yaml:/etc/bytefreezer/config.yaml:ro
+      - proxy-spool:/var/spool/bytefreezer-proxy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8008/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    # For privileged ports (514), uncomment:
+    # cap_add:
+    #   - NET_BIND_SERVICE
+
+volumes:
+  proxy-spool:

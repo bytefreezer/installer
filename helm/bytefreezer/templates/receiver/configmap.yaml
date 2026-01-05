@@ -1,0 +1,60 @@
+{{- if .Values.receiver.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "bytefreezer.receiver.fullname" . }}
+  labels:
+    {{- include "bytefreezer.receiver.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    app:
+      name: "bytefreezer-receiver"
+      version: {{ .Chart.AppVersion | quote }}
+
+    server:
+      api_port: {{ .Values.receiver.service.apiPort }}
+
+    webhook:
+      port: {{ .Values.receiver.service.webhookPort }}
+      read_timeout_seconds: 30
+      write_timeout_seconds: 30
+
+    s3:
+      bucket_name: {{ .Values.s3.buckets.intake | quote }}
+      region: {{ .Values.s3.region | quote }}
+      endpoint: {{ include "bytefreezer.s3Endpoint" . | quote }}
+      ssl: {{ .Values.s3.useSSL }}
+      use_iam_role: {{ .Values.s3.useIAMRole }}
+
+    control_service:
+      enabled: {{ .Values.controlService.enabled }}
+      control_url: {{ .Values.controlService.url | quote }}
+      timeout_seconds: {{ .Values.controlService.timeoutSeconds }}
+
+    spooling:
+      enabled: {{ .Values.receiver.spooling.enabled }}
+      directory: {{ .Values.receiver.spooling.directory | quote }}
+      max_size_bytes: {{ .Values.receiver.spooling.maxSizeBytes }}
+      retry_attempts: {{ .Values.receiver.spooling.retryAttempts }}
+      retry_interval_seconds: {{ .Values.receiver.spooling.retryIntervalSeconds }}
+
+    otel:
+      enabled: {{ .Values.monitoring.enabled }}
+      mode: {{ include "bytefreezer.metricsMode" . | quote }}
+      {{- if include "bytefreezer.metricsEndpoint" . }}
+      otlp_endpoint: {{ include "bytefreezer.metricsEndpoint" . | quote }}
+      {{- end }}
+      push_interval_seconds: {{ .Values.monitoring.pushIntervalSeconds }}
+      service_name: "bytefreezer-receiver"
+      metrics_host: "0.0.0.0"
+      metrics_port: 9091
+
+    health_reporting:
+      enabled: {{ .Values.receiver.healthReporting.enabled }}
+      report_interval: {{ .Values.receiver.healthReporting.reportInterval }}
+      timeout_seconds: 10
+      register_on_startup: true
+
+    error_tracking:
+      enabled: true
+{{- end }}

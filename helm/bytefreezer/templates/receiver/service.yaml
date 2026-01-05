@@ -1,0 +1,51 @@
+{{- if .Values.receiver.enabled }}
+# Internal service for API and health checks
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "bytefreezer.receiver.fullname" . }}
+  labels:
+    {{- include "bytefreezer.receiver.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.receiver.service.type }}
+  ports:
+    - port: {{ .Values.receiver.service.apiPort }}
+      targetPort: api
+      protocol: TCP
+      name: api
+    - port: {{ .Values.receiver.service.webhookPort }}
+      targetPort: webhook
+      protocol: TCP
+      name: webhook
+    {{- if .Values.monitoring.enabled }}
+    - port: 9091
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+    {{- end }}
+  selector:
+    {{- include "bytefreezer.receiver.selectorLabels" . | nindent 4 }}
+{{- if .Values.receiver.webhookService.enabled }}
+---
+# External LoadBalancer service for webhook ingestion
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "bytefreezer.receiver.fullname" . }}-webhook
+  labels:
+    {{- include "bytefreezer.receiver.labels" . | nindent 4 }}
+  {{- with .Values.receiver.webhookService.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.receiver.webhookService.type }}
+  ports:
+    - port: {{ .Values.receiver.webhookService.port }}
+      targetPort: webhook
+      protocol: TCP
+      name: webhook
+  selector:
+    {{- include "bytefreezer.receiver.selectorLabels" . | nindent 4 }}
+{{- end }}
+{{- end }}

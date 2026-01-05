@@ -1,0 +1,60 @@
+{{- if .Values.packer.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "bytefreezer.packer.fullname" . }}
+  labels:
+    {{- include "bytefreezer.packer.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    app:
+      name: "bytefreezer-packer"
+      version: {{ .Chart.AppVersion | quote }}
+
+    server:
+      api_port: {{ .Values.packer.service.apiPort }}
+
+    s3source:
+      bucket_name: {{ .Values.s3.buckets.piper | quote }}
+      region: {{ .Values.s3.region | quote }}
+      endpoint: {{ include "bytefreezer.s3Endpoint" . | quote }}
+      ssl: {{ .Values.s3.useSSL }}
+      use_iam_role: {{ .Values.s3.useIAMRole }}
+
+    control_service:
+      enabled: {{ .Values.controlService.enabled }}
+      control_url: {{ .Values.controlService.url | quote }}
+      timeout_seconds: {{ .Values.controlService.timeoutSeconds }}
+
+    parquet:
+      max_file_size_mb: {{ .Values.packer.parquet.maxFileSizeMB }}
+      timeout_seconds: {{ .Values.packer.parquet.timeoutSeconds }}
+      compression: {{ .Values.packer.parquet.compression | quote }}
+      streaming_mode: {{ .Values.packer.parquet.streamingMode }}
+      memory_buffer_mb: {{ .Values.packer.parquet.memoryBufferMB }}
+      atomic_upload: true
+
+    housekeeping:
+      enabled: {{ .Values.packer.housekeeping.enabled }}
+      intervalseconds: {{ .Values.packer.housekeeping.intervalSeconds }}
+
+    otel:
+      enabled: {{ .Values.monitoring.enabled }}
+      mode: {{ include "bytefreezer.metricsMode" . | quote }}
+      {{- if include "bytefreezer.metricsEndpoint" . }}
+      otlp_endpoint: {{ include "bytefreezer.metricsEndpoint" . | quote }}
+      {{- end }}
+      push_interval_seconds: {{ .Values.monitoring.pushIntervalSeconds }}
+      service_name: "bytefreezer-packer"
+      metrics_host: "0.0.0.0"
+      metrics_port: 9093
+
+    health_reporting:
+      enabled: {{ .Values.packer.healthReporting.enabled }}
+      report_interval: {{ .Values.packer.healthReporting.reportInterval }}
+      timeout_seconds: 10
+      register_on_startup: true
+
+    error_tracking:
+      enabled: true
+{{- end }}

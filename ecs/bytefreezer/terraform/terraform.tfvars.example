@@ -1,0 +1,41 @@
+# ByteFreezer Processing Stack - Terraform Variables
+# Copy this file to terraform.tfvars and customize
+
+environment = "production"
+
+# Required: VPC and Subnets
+vpc_id     = "vpc-xxxxxxxxx"
+subnet_ids = ["subnet-xxxxxxxx", "subnet-yyyyyyyy"]
+
+# Required: Control Service
+control_service_url         = "https://api.bytefreezer.com"
+control_service_api_key_arn = "arn:aws:secretsmanager:us-east-1:123456789012:secret:bytefreezer/control-api-key-xxxxxx"
+
+# Optional: Image configuration
+image_registry = "ghcr.io/bytefreezer"
+image_tag      = "latest"
+
+# Optional: S3 bucket prefix
+s3_bucket_prefix = "bytefreezer"
+
+# Optional: Service scaling
+receiver_desired_count = 1
+piper_desired_count    = 1
+packer_desired_count   = 1
+
+# Optional: Task sizing
+receiver_cpu    = 512
+receiver_memory = 1024
+piper_cpu       = 1024
+piper_memory    = 2048
+packer_cpu      = 1024
+packer_memory   = 2048
+
+# Optional: Log retention
+log_retention_days = 30
+
+# Optional: Tags
+tags = {
+  Project = "ByteFreezer"
+  Team    = "Platform"
+}

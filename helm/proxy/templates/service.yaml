@@ -1,0 +1,56 @@
+# API Service (health checks, internal)
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "proxy.fullname" . }}
+  labels:
+    {{- include "proxy.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.apiPort }}
+      targetPort: api
+      protocol: TCP
+      name: api
+    {{- if .Values.webhook.enabled }}
+    - port: {{ .Values.webhook.port }}
+      targetPort: webhook
+      protocol: TCP
+      name: webhook
+    {{- end }}
+    {{- if .Values.monitoring.enabled }}
+    - port: {{ .Values.monitoring.metricsPort }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+    {{- end }}
+  selector:
+    {{- include "proxy.selectorLabels" . | nindent 4 }}
+---
+{{- if and .Values.udp.enabled .Values.udp.ports }}
+# UDP Service (data ingestion)
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "proxy.fullname" . }}-udp
+  labels:
+    {{- include "proxy.labels" . | nindent 4 }}
+  {{- with .Values.udp.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.udp.service.type }}
+  {{- if .Values.udp.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.udp.service.loadBalancerIP }}
+  {{- end }}
+  ports:
+    {{- range .Values.udp.ports }}
+    - port: {{ .port }}
+      targetPort: {{ .name }}
+      protocol: UDP
+      name: {{ .name }}
+    {{- end }}
+  selector:
+    {{- include "proxy.selectorLabels" . | nindent 4 }}
+{{- end }}
