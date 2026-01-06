@@ -16,7 +16,7 @@ receiver_url: http://processing-server:8080
 # Control Service
 control_service_url: https://api.bytefreezer.com
 control_service_account_id: "{{ bytefreezer_proxy_account_id }}"
-control_service_api_key: "{{ vault_control_service_api_key }}"
+control_service_bearer_token: "{{ bytefreezer_proxy_bearer_token }}"
 
 # Proxy Configuration
 proxy_api_port: 8008
