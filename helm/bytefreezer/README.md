@@ -67,9 +67,8 @@ helm install bytefreezer ./bytefreezer \
 | `s3.useSSL` | Use SSL for S3 | `false` |
 | `s3.useIAMRole` | Use IAM role instead of keys | `false` |
 | `s3.existingSecret` | Use existing secret for S3 credentials | `""` |
-| `s3.buckets.intake` | Bucket for raw data | `intake` |
-| `s3.buckets.piper` | Bucket for processed data | `piper` |
-| `s3.buckets.packer` | Bucket for packed data | `packer` |
+| `s3.buckets.intake` | Bucket for raw data (receiver writes, piper reads) | `intake` |
+| `s3.buckets.piper` | Bucket for processed data (piper writes, packer reads) | `piper` |
 | `s3.buckets.geoip` | Bucket for GeoIP databases | `geoip` |
 
 ### MinIO (Optional)
@@ -414,7 +413,7 @@ helm install bytefreezer ./bytefreezer -f my-values.yaml
 1. **Proxies** (deployed separately) collect data and forward to **Receiver**
 2. **Receiver** stores raw data to S3 (`intake` bucket)
 3. **Piper** polls S3, processes data, stores to S3 (`piper` bucket)
-4. **Packer** polls S3, packs into Parquet files, stores to S3 (`packer` bucket)
+4. **Packer** polls S3, packs into Parquet files, uploads to per-tenant destinations (from Control API)
 5. All components report health and coordinate via **Control Service**
 
 ## Troubleshooting

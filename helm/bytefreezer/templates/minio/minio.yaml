@@ -173,7 +173,6 @@ spec:
               echo "Creating buckets..."
               mc mb --ignore-existing myminio/{{ .Values.s3.buckets.intake }}
               mc mb --ignore-existing myminio/{{ .Values.s3.buckets.piper }}
-              mc mb --ignore-existing myminio/{{ .Values.s3.buckets.packer }}
               mc mb --ignore-existing myminio/{{ .Values.s3.buckets.geoip }}
               echo "Buckets created successfully"
           env:

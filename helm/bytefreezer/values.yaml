@@ -24,10 +24,10 @@ s3:
   existingSecret: ""
   # Bucket names
   buckets:
-    intake: "intake"
-    piper: "piper"
-    packer: "packer"
-    geoip: "geoip"
+    intake: "intake"   # receiver writes, piper reads
+    piper: "piper"     # piper writes, packer reads
+    geoip: "geoip"     # GeoIP database files
+    # Note: packer outputs to per-tenant destinations from Control API
 
 # Optional MinIO Deployment
 # Enable this if you don't have external S3/MinIO storage
