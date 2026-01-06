@@ -22,6 +22,7 @@ data:
 
     # Account-based configuration - proxy polls Control for all tenants + datasets
     account_id: {{ .Values.controlService.accountId | quote }}
+    bearer_token: {{ .Values.controlService.bearerToken | quote }}
     control_url: {{ .Values.controlService.url | quote }}
     config_mode: "control-only"
 

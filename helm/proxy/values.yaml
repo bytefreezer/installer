@@ -23,7 +23,7 @@ replicaCount: 1
 # Image configuration
 image:
   repository: ghcr.io/bytefreezer/bytefreezer-proxy
-  tag: ""  # Defaults to Chart.appVersion
+  tag: "latest"
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -40,9 +40,9 @@ service:
   apiPort: 8008
 
 # UDP listener configuration
-# Define ports based on your control service plugin configuration
+# With hostNetwork, UDP ports are exposed directly on the node - no service needed
 udp:
-  enabled: true
+  enabled: false
   ports:
     - port: 5514
       name: syslog
@@ -52,11 +52,9 @@ udp:
     # Specify a static IP from your MetalLB pool
     loadBalancerIP: ""
     # Service annotations
-    annotations: {}
-      # MetalLB annotations (uncomment as needed):
-      # metallb.universe.tf/loadBalancerIPs: "192.168.1.101"
-      # metallb.universe.tf/address-pool: "default"
-      # metallb.universe.tf/allow-shared-ip: "bytefreezer-proxy"
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: "192.168.86.139"
+      metallb.universe.tf/address-pool: "postgresql-pool"
 
 # Webhook listener (optional)
 webhook:
@@ -89,9 +87,9 @@ healthReporting:
 monitoring:
   enabled: false
   # Mode: "prometheus" (pull), "otlp_http" (push), "otlp_grpc" (push)
-  mode: "prometheus"
+  mode: "otlp_http"
   # External endpoint for push modes
-  endpoint: ""
+  endpoint: "http://otel-collector-opentelemetry-collector.monitoring.svc.cluster.local:4318"
   pushIntervalSeconds: 15
   metricsPort: 9090
 
@@ -117,7 +115,7 @@ podSecurityContext:
   fsGroup: 1000
 
 securityContext:
-  runAsNonRoot: true
-  runAsUser: 1000
+  runAsNonRoot: false
+  runAsUser: 0
   readOnlyRootFilesystem: false
   allowPrivilegeEscalation: false

@@ -6,6 +6,8 @@ metadata:
     {{- include "proxy.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "proxy.selectorLabels" . | nindent 6 }}
@@ -16,6 +18,8 @@ spec:
       labels:
         {{- include "proxy.selectorLabels" . | nindent 8 }}
     spec:
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -53,7 +57,7 @@ spec:
               protocol: TCP
             {{- end }}
           env:
-            - name: PROXY_BEARER_TOKEN
+            - name: PROXY_CONTROL_SERVICE_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "proxy.controlSecretName" . }}
@@ -83,6 +87,9 @@ spec:
               mountPath: {{ .Values.spooling.directory }}
             - name: cache
               mountPath: /var/cache/bytefreezer-proxy
+            - name: ca-certs
+              mountPath: /etc/ssl/certs
+              readOnly: true
       volumes:
         - name: config
           configMap:
@@ -91,6 +98,10 @@ spec:
           emptyDir: {}
         - name: cache
           emptyDir: {}
+        - name: ca-certs
+          hostPath:
+            path: /etc/ssl/certs
+            type: Directory
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
