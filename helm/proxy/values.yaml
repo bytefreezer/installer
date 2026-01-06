@@ -45,8 +45,15 @@ udp:
       name: syslog
   service:
     type: LoadBalancer
+    # MetalLB Configuration (for k3s/bare-metal with MetalLB)
+    # Specify a static IP from your MetalLB pool
+    loadBalancerIP: ""
+    # Service annotations
     annotations: {}
-    # loadBalancerIP: ""  # Optional: specify static IP
+      # MetalLB annotations (uncomment as needed):
+      # metallb.universe.tf/loadBalancerIPs: "192.168.1.101"
+      # metallb.universe.tf/address-pool: "default"
+      # metallb.universe.tf/allow-shared-ip: "bytefreezer-proxy"
 
 # Webhook listener (optional)
 webhook:
