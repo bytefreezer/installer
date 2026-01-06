@@ -3,9 +3,12 @@
 
 - name: Create proxy directories
   file:
-    path: "{{ bytefreezer_config_dir }}/proxy"
+    path: "{{ item }}"
     state: directory
     mode: '0755'
+  loop:
+    - "{{ bytefreezer_config_dir }}/proxy"
+    - "{{ bytefreezer_base_dir }}/cache"
 
 - name: Deploy proxy configuration
   template:

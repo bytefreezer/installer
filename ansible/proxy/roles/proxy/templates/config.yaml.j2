@@ -1,23 +1,49 @@
 # ByteFreezer Proxy Configuration
 # Managed by Ansible
 
+app:
+  name: "bytefreezer-proxy"
+
+logging:
+  level: info
+  encoding: console
+
 server:
   api_port: {{ proxy_api_port }}
 
+# Plugin-based input configuration (populated from Control)
+inputs: []
+
+# Account-based configuration - proxy polls Control for all tenants + datasets
+account_id: "{{ control_service_account_id }}"
+control_url: "{{ control_service_url }}"
+config_mode: "control-only"
+
 receiver:
-  url: "{{ receiver_url }}"
-
-udp_listeners:
-{% for port in udp_ports %}
-  - port: {{ port }}
-    protocol: syslog
-{% endfor %}
-
-control_service:
-  enabled: true
-  control_url: "{{ control_service_url }}"
+  base_url: "{{ receiver_url }}"
   timeout_seconds: 30
+  upload_worker_count: 5
+  max_idle_conns: 10
+  max_conns_per_host: 6
+
+config_polling:
+  enabled: true
+  interval_seconds: 60
+  timeout_seconds: 30
+  cache_directory: "{{ bytefreezer_base_dir }}/cache"
+  retry_on_error: true
+
+tenant_validation:
+  enabled: true
+  cache_ttl_seconds: 300
+  inactive_cache_ttl_seconds: 3600
+  timeout_seconds: 5
 
 health_reporting:
   enabled: true
   report_interval: 30
+  timeout_seconds: 10
+  register_on_startup: true
+
+error_tracking:
+  enabled: true
