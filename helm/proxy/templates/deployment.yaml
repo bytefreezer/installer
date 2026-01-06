@@ -57,7 +57,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ include "proxy.controlSecretName" . }}
-                  key: apiKey
+                  key: bearerToken
                   optional: true
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
@@ -81,11 +81,15 @@ spec:
               mountPath: /etc/bytefreezer
             - name: spool
               mountPath: {{ .Values.spooling.directory }}
+            - name: cache
+              mountPath: /var/cache/bytefreezer-proxy
       volumes:
         - name: config
           configMap:
             name: {{ include "proxy.fullname" . }}
         - name: spool
+          emptyDir: {}
+        - name: cache
           emptyDir: {}
       {{- with .Values.nodeSelector }}
       nodeSelector:

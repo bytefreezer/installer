@@ -8,9 +8,12 @@ receiver:
 
 # Control Service configuration
 controlService:
-  url: ""  # e.g., https://api.bytefreezer.com
-  apiKey: ""
-  # Use existing secret for API key (key: apiKey)
+  url: "https://api.bytefreezer.com"  # e.g., https://api.bytefreezer.com
+  # Account ID - the proxy polls Control for all tenants + datasets for this account
+  accountId: ""  # Required: e.g., "ejq73vgnw26p"
+  # Bearer token - account-specific API key for all auth (config polling AND health reporting)
+  bearerToken: ""  # Required: account API key
+  # Use existing secret for bearer token (key: bearerToken)
   existingSecret: ""
   timeoutSeconds: 30
 

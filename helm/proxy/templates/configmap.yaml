@@ -10,22 +10,40 @@ data:
       name: "bytefreezer-proxy"
       version: {{ .Chart.AppVersion | quote }}
 
+    logging:
+      level: info
+      encoding: console
+
     server:
       api_port: {{ .Values.service.apiPort }}
+
+    # Plugin-based input configuration (populated from Control)
+    inputs: []
+
+    # Account-based configuration - proxy polls Control for all tenants + datasets
+    account_id: {{ .Values.controlService.accountId | quote }}
+    control_url: {{ .Values.controlService.url | quote }}
+    config_mode: "control-only"
 
     receiver:
       base_url: {{ .Values.receiver.url | quote }}
       timeout_seconds: 30
-      upload_worker_count: 4
-
-    control_url: {{ .Values.controlService.url | quote }}
-    config_mode: "control-only"
+      upload_worker_count: 5
+      max_idle_conns: 10
+      max_conns_per_host: 6
 
     config_polling:
       enabled: true
       interval_seconds: 60
       timeout_seconds: {{ .Values.controlService.timeoutSeconds }}
+      cache_directory: "/var/cache/bytefreezer-proxy"
       retry_on_error: true
+
+    tenant_validation:
+      enabled: true
+      cache_ttl_seconds: 300
+      inactive_cache_ttl_seconds: 3600
+      timeout_seconds: 5
 
     batching:
       enabled: {{ .Values.batching.enabled }}
