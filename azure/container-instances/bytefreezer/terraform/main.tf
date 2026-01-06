@@ -58,25 +58,19 @@ resource "azurerm_storage_account" "bytefreezer" {
 
 # Storage Containers
 resource "azurerm_storage_container" "intake" {
-  name                  = "intake"
+  name                  = "bytefreezer-intake"
   storage_account_name  = azurerm_storage_account.bytefreezer.name
   container_access_type = "private"
 }
 
 resource "azurerm_storage_container" "piper" {
-  name                  = "piper"
-  storage_account_name  = azurerm_storage_account.bytefreezer.name
-  container_access_type = "private"
-}
-
-resource "azurerm_storage_container" "packer" {
-  name                  = "packer"
+  name                  = "bytefreezer-piper"
   storage_account_name  = azurerm_storage_account.bytefreezer.name
   container_access_type = "private"
 }
 
 resource "azurerm_storage_container" "geoip" {
-  name                  = "geoip"
+  name                  = "bytefreezer-geoip"
   storage_account_name  = azurerm_storage_account.bytefreezer.name
   container_access_type = "private"
 }
@@ -108,7 +102,7 @@ resource "azurerm_container_group" "receiver" {
 
     environment_variables = {
       RECEIVER_S3_ENDPOINT = azurerm_storage_account.bytefreezer.primary_blob_endpoint
-      RECEIVER_S3_BUCKET   = "intake"
+      RECEIVER_S3_BUCKET   = "bytefreezer-intake"
       RECEIVER_S3_SSL      = "true"
       RECEIVER_CONTROL_URL = var.control_service_url
     }
@@ -145,9 +139,9 @@ resource "azurerm_container_group" "piper" {
 
     environment_variables = {
       PIPER_S3_SOURCE_ENDPOINT      = azurerm_storage_account.bytefreezer.primary_blob_endpoint
-      PIPER_S3_SOURCE_BUCKET        = "intake"
+      PIPER_S3_SOURCE_BUCKET        = "bytefreezer-intake"
       PIPER_S3_DESTINATION_ENDPOINT = azurerm_storage_account.bytefreezer.primary_blob_endpoint
-      PIPER_S3_DESTINATION_BUCKET   = "piper"
+      PIPER_S3_DESTINATION_BUCKET   = "bytefreezer-piper"
       PIPER_S3_SSL                  = "true"
       PIPER_CONTROL_URL             = var.control_service_url
     }
@@ -186,10 +180,9 @@ resource "azurerm_container_group" "packer" {
 
     environment_variables = {
       PACKER_S3SOURCE_ENDPOINT     = azurerm_storage_account.bytefreezer.primary_blob_endpoint
-      PACKER_S3SOURCE_BUCKET       = "piper"
-      PACKER_S3DESTINATION_ENDPOINT = azurerm_storage_account.bytefreezer.primary_blob_endpoint
-      PACKER_S3DESTINATION_BUCKET  = "packer"
+      PACKER_S3SOURCE_BUCKET       = "bytefreezer-piper"
       PACKER_S3_SSL                = "true"
+      # Note: Packer outputs to per-tenant destinations from Control API
       PACKER_CONTROL_URL           = var.control_service_url
     }
 

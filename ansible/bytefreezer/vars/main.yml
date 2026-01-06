@@ -15,10 +15,10 @@ s3_endpoint: "minio:9000"
 s3_region: us-east-1
 s3_use_ssl: false
 s3_buckets:
-  intake: intake
-  piper: piper
-  packer: packer
-  geoip: geoip
+  intake: bytefreezer-intake    # receiver writes, piper reads
+  piper: bytefreezer-piper      # piper writes, packer reads
+  geoip: bytefreezer-geoip      # GeoIP database files
+  # Note: packer outputs to per-tenant destinations from Control API
 
 # MinIO (set to true if no external S3)
 minio_enabled: false

@@ -65,28 +65,6 @@ resource "aws_s3_bucket_public_access_block" "piper" {
   restrict_public_buckets = true
 }
 
-resource "aws_s3_bucket" "packer" {
-  bucket = "${var.s3_bucket_prefix}-packer-${data.aws_caller_identity.current.account_id}"
-  tags   = local.common_tags
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "packer" {
-  bucket = aws_s3_bucket.packer.id
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "packer" {
-  bucket                  = aws_s3_bucket.packer.id
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
 resource "aws_s3_bucket" "geoip" {
   bucket = "${var.s3_bucket_prefix}-geoip-${data.aws_caller_identity.current.account_id}"
   tags   = local.common_tags
@@ -213,8 +191,6 @@ resource "aws_iam_role_policy" "task_s3" {
         "${aws_s3_bucket.intake.arn}/*",
         aws_s3_bucket.piper.arn,
         "${aws_s3_bucket.piper.arn}/*",
-        aws_s3_bucket.packer.arn,
-        "${aws_s3_bucket.packer.arn}/*",
         aws_s3_bucket.geoip.arn,
         "${aws_s3_bucket.geoip.arn}/*"
       ]

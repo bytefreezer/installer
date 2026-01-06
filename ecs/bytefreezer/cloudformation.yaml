@@ -86,20 +86,6 @@ Resources:
         IgnorePublicAcls: true
         RestrictPublicBuckets: true
 
-  PackerBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub '${S3BucketPrefix}-packer-${AWS::AccountId}'
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-
   GeoIPBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -193,8 +179,6 @@ Resources:
                   - !Sub '${IntakeBucket.Arn}/*'
                   - !GetAtt PiperBucket.Arn
                   - !Sub '${PiperBucket.Arn}/*'
-                  - !GetAtt PackerBucket.Arn
-                  - !Sub '${PackerBucket.Arn}/*'
                   - !GetAtt GeoIPBucket.Arn
                   - !Sub '${GeoIPBucket.Arn}/*'
 
@@ -523,6 +507,3 @@ Outputs:
     Description: S3 bucket for processed data
     Value: !Ref PiperBucket
 
-  PackerBucketName:
-    Description: S3 bucket for packed Parquet files
-    Value: !Ref PackerBucket

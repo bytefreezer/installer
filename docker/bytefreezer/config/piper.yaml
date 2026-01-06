@@ -8,7 +8,7 @@ server:
   api_port: 8082
 
 s3_source:
-  bucket_name: "intake"
+  bucket_name: "bytefreezer-intake"
   region: "us-east-1"
   endpoint: "minio:9000"
   ssl: false
@@ -16,14 +16,14 @@ s3_source:
   poll_interval: "30s"
 
 s3_destination:
-  bucket_name: "piper"
+  bucket_name: "bytefreezer-piper"
   region: "us-east-1"
   endpoint: "minio:9000"
   ssl: false
   use_iam_role: false
 
 s3_geoip:
-  bucket_name: "geoip"
+  bucket_name: "bytefreezer-geoip"
   region: "us-east-1"
   endpoint: "minio:9000"
   ssl: false

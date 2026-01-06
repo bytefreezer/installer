@@ -44,12 +44,6 @@ resource "google_storage_bucket_object" "piper" {
   bucket  = google_storage_bucket.bytefreezer.name
 }
 
-resource "google_storage_bucket_object" "packer" {
-  name    = "packer/"
-  content = " "
-  bucket  = google_storage_bucket.bytefreezer.name
-}
-
 resource "google_storage_bucket_object" "geoip" {
   name    = "geoip/"
   content = " "

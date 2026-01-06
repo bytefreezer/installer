@@ -44,25 +44,19 @@ resource "azurerm_storage_account" "bytefreezer" {
 
 # Storage Containers (buckets)
 resource "azurerm_storage_container" "intake" {
-  name                  = "intake"
+  name                  = "bytefreezer-intake"
   storage_account_name  = azurerm_storage_account.bytefreezer.name
   container_access_type = "private"
 }
 
 resource "azurerm_storage_container" "piper" {
-  name                  = "piper"
-  storage_account_name  = azurerm_storage_account.bytefreezer.name
-  container_access_type = "private"
-}
-
-resource "azurerm_storage_container" "packer" {
-  name                  = "packer"
+  name                  = "bytefreezer-piper"
   storage_account_name  = azurerm_storage_account.bytefreezer.name
   container_access_type = "private"
 }
 
 resource "azurerm_storage_container" "geoip" {
-  name                  = "geoip"
+  name                  = "bytefreezer-geoip"
   storage_account_name  = azurerm_storage_account.bytefreezer.name
   container_access_type = "private"
 }

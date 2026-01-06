@@ -11,7 +11,7 @@ webhook:
   write_timeout_seconds: 30
 
 s3:
-  bucket_name: "intake"
+  bucket_name: "bytefreezer-intake"
   region: "us-east-1"
   endpoint: "minio:9000"
   ssl: false

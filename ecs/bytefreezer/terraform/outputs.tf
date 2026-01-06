@@ -38,16 +38,6 @@ output "piper_bucket_arn" {
   value       = aws_s3_bucket.piper.arn
 }
 
-output "packer_bucket_name" {
-  description = "S3 bucket for packed Parquet files"
-  value       = aws_s3_bucket.packer.id
-}
-
-output "packer_bucket_arn" {
-  description = "S3 bucket ARN for packed Parquet files"
-  value       = aws_s3_bucket.packer.arn
-}
-
 output "geoip_bucket_name" {
   description = "S3 bucket for GeoIP databases"
   value       = aws_s3_bucket.geoip.id

@@ -47,12 +47,6 @@ resource "google_storage_bucket_object" "piper" {
   bucket  = google_storage_bucket.bytefreezer.name
 }
 
-resource "google_storage_bucket_object" "packer" {
-  name    = "packer/"
-  content = " "
-  bucket  = google_storage_bucket.bytefreezer.name
-}
-
 resource "google_storage_bucket_object" "geoip" {
   name    = "geoip/"
   content = " "
@@ -193,8 +187,8 @@ resource "helm_release" "bytefreezer" {
   }
 
   set {
-    name  = "s3.buckets.packer"
-    value = "${google_storage_bucket.bytefreezer.name}/packer"
+    name  = "s3.buckets.geoip"
+    value = "${google_storage_bucket.bytefreezer.name}/geoip"
   }
 
   set {

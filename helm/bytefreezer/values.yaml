@@ -22,11 +22,11 @@ s3:
   useIAMRole: false
   # Existing secret containing S3 credentials (accessKey, secretKey)
   existingSecret: ""
-  # Bucket names
+  # Bucket names (prefixed with bytefreezer- for clarity)
   buckets:
-    intake: "intake"   # receiver writes, piper reads
-    piper: "piper"     # piper writes, packer reads
-    geoip: "geoip"     # GeoIP database files
+    intake: "bytefreezer-intake"   # receiver writes, piper reads
+    piper: "bytefreezer-piper"     # piper writes, packer reads
+    geoip: "bytefreezer-geoip"     # GeoIP database files
     # Note: packer outputs to per-tenant destinations from Control API
 
 # Optional MinIO Deployment
