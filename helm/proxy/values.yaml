@@ -4,15 +4,15 @@
 # Receiver configuration
 receiver:
   # URL of the ByteFreezer receiver webhook endpoint
-  url: ""  # e.g., https://receiver.example.com:8080
+  url: "https://receiver.bytefreezer.com"  # e.g., https://receiver.example.com:8080
 
 # Control Service configuration
 controlService:
   url: "https://api.bytefreezer.com"  # e.g., https://api.bytefreezer.com
   # Account ID - the proxy polls Control for all tenants + datasets for this account
-  accountId: ""  # Required: e.g., "ejq73vgnw26p"
+  accountId: "3dzauc5dmov6"  # Required: e.g., "ejq73vgnw26p"
   # Bearer token - account-specific API key for all auth (config polling AND health reporting)
-  bearerToken: ""  # Required: account API key
+  bearerToken: "9fKiv74S3TrqQ2igBIOb7hWSiVFq3VtzLJo1"  # Required: account API key
   # Use existing secret for bearer token (key: bearerToken)
   existingSecret: ""
   timeoutSeconds: 30
@@ -102,7 +102,14 @@ resources:
     cpu: 1000m
     memory: 1Gi
 
+# Network mode
+# hostNetwork: true  - Pod uses host's network namespace, UDP ports bind directly to node IP
+# hostNetwork: false - Pod uses cluster network, use LoadBalancer service for external access
+hostNetwork: true
+
 # Pod settings
+# nodeName: specify exact node to run on (e.g., "worker-1")
+nodeName: ""
 nodeSelector: {}
 tolerations: []
 affinity: {}

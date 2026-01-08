@@ -30,7 +30,89 @@ helm install proxy ./proxy \
 |-----------|-------------|
 | `receiver.url` | URL of ByteFreezer receiver webhook endpoint |
 | `controlService.url` | Control service URL |
-| `controlService.apiKey` | API key for authentication |
+| `controlService.accountId` | Account ID for config polling |
+| `controlService.bearerToken` | API key for authentication |
+
+### Network Modes
+
+The proxy supports three network modes for UDP traffic:
+
+#### Option 1: hostNetwork (Direct Node Access)
+
+Pod uses the host's network namespace. UDP ports bind directly to the node's IP address.
+
+```bash
+helm install proxy ./proxy -n bytefreezer \
+  --set hostNetwork=true \
+  --set nodeName=worker-1 \
+  --set udp.enabled=true
+```
+
+**Pros:**
+- Lowest latency, no NAT overhead
+- Simple - clients send directly to node IP
+- Works without LoadBalancer support
+
+**Cons:**
+- Pod tied to specific node
+- Port conflicts if other services use same ports
+- Only one proxy per node
+
+**Use when:** On-prem deployments, edge locations, bare-metal
+
+#### Option 2: LoadBalancer (MetalLB / Cloud LB)
+
+Pod uses cluster networking with external LoadBalancer for UDP traffic.
+
+```bash
+helm install proxy ./proxy -n bytefreezer \
+  --set hostNetwork=false \
+  --set udp.enabled=true \
+  --set udp.service.type=LoadBalancer \
+  --set udp.service.annotations."metallb\.universe\.tf/loadBalancerIPs"="192.168.86.139"
+```
+
+**Pros:**
+- Pod can run on any node
+- Kubernetes manages scheduling
+- Can have multiple replicas behind LB
+
+**Cons:**
+- Requires LoadBalancer support (MetalLB, cloud provider)
+- Slightly higher latency due to NAT
+
+**Use when:** Cloud deployments, clusters with MetalLB
+
+#### Option 3: ClusterIP (Internal Only)
+
+Pod only accessible within the cluster.
+
+```bash
+helm install proxy ./proxy -n bytefreezer \
+  --set hostNetwork=false \
+  --set udp.enabled=true \
+  --set udp.service.type=ClusterIP
+```
+
+**Use when:** Proxy receives data from other pods in the cluster
+
+### Node Selection
+
+When using `hostNetwork: true`, you typically want to control which node the proxy runs on:
+
+**Specific node by name:**
+```bash
+--set nodeName=tp4
+```
+
+**By node label:**
+```bash
+# First label the node
+kubectl label node tp4 bytefreezer-proxy=true
+
+# Then use nodeSelector
+--set nodeSelector.bytefreezer-proxy=true
+```
 
 ### UDP Ports
 

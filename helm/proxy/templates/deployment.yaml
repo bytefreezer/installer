@@ -18,8 +18,10 @@ spec:
       labels:
         {{- include "proxy.selectorLabels" . | nindent 8 }}
     spec:
+      {{- if .Values.hostNetwork }}
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
+      {{- end }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -102,6 +104,9 @@ spec:
           hostPath:
             path: /etc/ssl/certs
             type: Directory
+      {{- if .Values.nodeName }}
+      nodeName: {{ .Values.nodeName }}
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
