@@ -10,9 +10,9 @@ receiver:
 controlService:
   url: "https://api.bytefreezer.com"  # e.g., https://api.bytefreezer.com
   # Account ID - the proxy polls Control for all tenants + datasets for this account
-  accountId: ""  # Required: e.g., "ejq73vgnw26p"
+  accountId: "3dzauc5dmov6"  # Required: e.g., "ejq73vgnw26p"
   # Bearer token - account-specific API key for all auth (config polling AND health reporting)
-  bearerToken: ""  # Required: account API key
+  bearerToken: "9fKiv74S3TrqQ2igBIOb7hWSiVFq3VtzLJo1"  # Required: account API key
   # Use existing secret for bearer token (key: bearerToken)
   existingSecret: ""
   timeoutSeconds: 30
@@ -107,14 +107,12 @@ resources:
 # hostNetwork: false - Pod uses cluster network, use LoadBalancer service for external access
 hostNetwork: true
 
-# Instance ID - used to identify this proxy in Control
-# If not set, defaults to pod hostname
-# Set this to match the proxy name shown in Control UI (e.g., "tp5")
-instanceId: ""
+# Instance ID - must match the proxy name in Control UI
+instanceId: "tp5"
 
 # Pod settings
 # nodeName: specify exact node to run on (e.g., "worker-1")
-nodeName: ""
+nodeName: "tp5"
 nodeSelector: {}
 tolerations: []
 affinity: {}

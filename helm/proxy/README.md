@@ -395,3 +395,21 @@ echo "<14>Test message" | nc -u $LB_IP 5514
 ```bash
 helm uninstall proxy
 ```
+
+
+helm install proxy-tp5 /home/andrew/workspace/bytefreezer/installer/helm/proxy \
+    -n bytefreezer \
+    --create-namespace \
+    -f proxy-tp5.yaml
+
+  Or to upgrade if already installed:
+
+  helm upgrade proxy-tp5 /home/andrew/workspace/bytefreezer/installer/helm/proxy \
+    -n bytefreezer \
+    -f proxy-tp5.yaml
+
+ Check status:
+
+  kubectl get pods -n bytefreezer -l app.kubernetes.io/name=proxy
+  kubectl logs -n bytefreezer -l app.kubernetes.io/name=proxy
+
