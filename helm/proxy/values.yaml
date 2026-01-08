@@ -107,11 +107,6 @@ resources:
 # hostNetwork: false - Pod uses cluster network, use LoadBalancer service for external access
 hostNetwork: true
 
-# Instance ID - used to identify this proxy in Control
-# If not set, defaults to pod hostname
-# Set this to match the proxy name shown in Control UI (e.g., "tp5")
-instanceId: ""
-
 # Pod settings
 # nodeName: specify exact node to run on (e.g., "worker-1")
 nodeName: ""

@@ -25,9 +25,6 @@ data:
     bearer_token: {{ .Values.controlService.bearerToken | quote }}
     control_url: {{ .Values.controlService.url | quote }}
     config_mode: "control-only"
-    {{- if .Values.instanceId }}
-    instance_id: {{ .Values.instanceId | quote }}
-    {{- end }}
 
     receiver:
       base_url: {{ .Values.receiver.url | quote }}
