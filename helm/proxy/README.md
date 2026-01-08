@@ -325,6 +325,46 @@ resources:
 helm install proxy ./proxy -n bytefreezer -f proxy-ha.yaml
 ```
 
+## UDP Buffer Tuning
+
+For high-throughput UDP sources (syslog, sFlow, NetFlow, etc.), the kernel must allow large socket buffers. The proxy requests 8MB buffers by default and will report warnings in the UI if the kernel limits them.
+
+### Required Kernel Settings
+
+On each node running the proxy:
+
+```bash
+# Increase UDP buffer limits
+sudo sysctl -w net.core.rmem_max=16777216
+sudo sysctl -w net.core.rmem_default=8388608
+sudo sysctl -w net.core.netdev_max_backlog=50000
+
+# Make persistent
+cat <<EOF | sudo tee /etc/sysctl.d/99-bytefreezer.conf
+net.core.rmem_max=16777216
+net.core.rmem_default=8388608
+net.core.netdev_max_backlog=50000
+EOF
+```
+
+### Per-Dataset Buffer Size
+
+The `read_buffer_size` is configured per dataset in Control (defaults to 8MB). If you see "UDP socket drops" warnings:
+
+1. Verify kernel settings are applied (`sysctl net.core.rmem_max`)
+2. Increase `read_buffer_size` in the dataset configuration via Control
+3. Restart the proxy to apply changes
+
+### Verifying Buffer Settings
+
+```bash
+# Check current kernel limits
+sysctl net.core.rmem_max net.core.rmem_default
+
+# Check proxy logs for buffer warnings
+kubectl logs -l app.kubernetes.io/name=proxy | grep -i buffer
+```
+
 ## Troubleshooting
 
 ### Check Status
