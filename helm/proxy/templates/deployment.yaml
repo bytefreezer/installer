@@ -111,20 +111,9 @@ spec:
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if or .Values.affinity (and .Values.hostNetwork (not .Values.nodeName)) }}
+      {{- with .Values.affinity }}
       affinity:
-        {{- if .Values.affinity }}
-        {{- toYaml .Values.affinity | nindent 8 }}
-        {{- end }}
-        {{- if and .Values.hostNetwork (not .Values.nodeName) }}
-        {{- /* Auto anti-affinity for hostNetwork without nodeName to prevent port conflicts */}}
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            - labelSelector:
-                matchLabels:
-                  {{- include "proxy.selectorLabels" . | nindent 18 }}
-              topologyKey: kubernetes.io/hostname
-        {{- end }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
