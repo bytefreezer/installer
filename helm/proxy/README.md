@@ -15,11 +15,22 @@ The proxy collects data via UDP (syslog, etc.) or webhook and forwards it to a B
 
 ## Quick Start
 
+Create `proxy-values.yaml`:
+
+```yaml
+receiver:
+  url: "https://receiver.example.com"
+
+controlService:
+  url: "https://api.bytefreezer.com"
+  accountId: "your-account-id"
+  bearerToken: "your-api-key"
+```
+
+Install:
+
 ```bash
-helm install proxy ./proxy \
-  --set receiver.url=https://receiver.example.com:8080 \
-  --set controlService.url=https://api.bytefreezer.com \
-  --set controlService.apiKey=YOUR_API_KEY
+helm install proxy ./proxy -n bytefreezer -f proxy-values.yaml
 ```
 
 ## Configuration
@@ -41,11 +52,29 @@ The proxy supports three network modes for UDP traffic:
 
 Pod uses the host's network namespace. UDP ports bind directly to the node's IP address.
 
+Create `proxy-hostnetwork.yaml`:
+
+```yaml
+receiver:
+  url: "https://receiver.example.com"
+
+controlService:
+  url: "https://api.bytefreezer.com"
+  accountId: "your-account-id"
+  bearerToken: "your-api-key"
+
+hostNetwork: true
+nodeName: "worker-1"
+
+udp:
+  enabled: true
+  ports:
+    - port: 514
+      name: syslog
+```
+
 ```bash
-helm install proxy ./proxy -n bytefreezer \
-  --set hostNetwork=true \
-  --set nodeName=worker-1 \
-  --set udp.enabled=true
+helm install proxy ./proxy -n bytefreezer -f proxy-hostnetwork.yaml
 ```
 
 **Pros:**
@@ -64,12 +93,32 @@ helm install proxy ./proxy -n bytefreezer \
 
 Pod uses cluster networking with external LoadBalancer for UDP traffic.
 
+Create `proxy-loadbalancer.yaml`:
+
+```yaml
+receiver:
+  url: "https://receiver.example.com"
+
+controlService:
+  url: "https://api.bytefreezer.com"
+  accountId: "your-account-id"
+  bearerToken: "your-api-key"
+
+hostNetwork: false
+
+udp:
+  enabled: true
+  ports:
+    - port: 514
+      name: syslog
+  service:
+    type: LoadBalancer
+    annotations:
+      metallb.universe.tf/loadBalancerIPs: "192.168.86.139"
+```
+
 ```bash
-helm install proxy ./proxy -n bytefreezer \
-  --set hostNetwork=false \
-  --set udp.enabled=true \
-  --set udp.service.type=LoadBalancer \
-  --set udp.service.annotations."metallb\.universe\.tf/loadBalancerIPs"="192.168.86.139"
+helm install proxy ./proxy -n bytefreezer -f proxy-loadbalancer.yaml
 ```
 
 **Pros:**
@@ -87,11 +136,27 @@ helm install proxy ./proxy -n bytefreezer \
 
 Pod only accessible within the cluster.
 
+Create `proxy-internal.yaml`:
+
+```yaml
+receiver:
+  url: "https://receiver.example.com"
+
+controlService:
+  url: "https://api.bytefreezer.com"
+  accountId: "your-account-id"
+  bearerToken: "your-api-key"
+
+hostNetwork: false
+
+udp:
+  enabled: true
+  service:
+    type: ClusterIP
+```
+
 ```bash
-helm install proxy ./proxy -n bytefreezer \
-  --set hostNetwork=false \
-  --set udp.enabled=true \
-  --set udp.service.type=ClusterIP
+helm install proxy ./proxy -n bytefreezer -f proxy-internal.yaml
 ```
 
 **Use when:** Proxy receives data from other pods in the cluster
@@ -101,17 +166,21 @@ helm install proxy ./proxy -n bytefreezer \
 When using `hostNetwork: true`, you typically want to control which node the proxy runs on:
 
 **Specific node by name:**
-```bash
---set nodeName=tp4
+
+```yaml
+nodeName: "tp4"
 ```
 
 **By node label:**
+
 ```bash
 # First label the node
 kubectl label node tp4 bytefreezer-proxy=true
+```
 
-# Then use nodeSelector
---set nodeSelector.bytefreezer-proxy=true
+```yaml
+nodeSelector:
+  bytefreezer-proxy: "true"
 ```
 
 ### UDP Ports
@@ -169,73 +238,91 @@ udp:
 
 Deploy proxies at multiple sites, all forwarding to central receiver:
 
-**Site A (us-east):**
-```bash
-helm install proxy-us-east ./proxy \
-  --namespace site-us-east \
-  --set receiver.url=https://receiver.central.example.com:8080 \
-  --set controlService.url=https://api.bytefreezer.com \
-  --set controlService.apiKey=YOUR_API_KEY \
-  --set udp.ports[0].port=514 \
-  --set udp.ports[0].name=syslog
+**Site A (us-east) - `proxy-us-east.yaml`:**
+
+```yaml
+receiver:
+  url: "https://receiver.central.example.com"
+
+controlService:
+  url: "https://api.bytefreezer.com"
+  accountId: "your-account-id"
+  bearerToken: "your-api-key"
+
+hostNetwork: true
+nodeName: "edge-us-east-1"
+
+udp:
+  enabled: true
+  ports:
+    - port: 514
+      name: syslog
 ```
 
-**Site B (eu-west):**
 ```bash
-helm install proxy-eu-west ./proxy \
-  --namespace site-eu-west \
-  --set receiver.url=https://receiver.central.example.com:8080 \
-  --set controlService.url=https://api.bytefreezer.com \
-  --set controlService.apiKey=YOUR_API_KEY \
-  --set udp.ports[0].port=514 \
-  --set udp.ports[0].name=syslog
+helm install proxy-us-east ./proxy -n site-us-east -f proxy-us-east.yaml
+```
+
+**Site B (eu-west) - `proxy-eu-west.yaml`:**
+
+```yaml
+receiver:
+  url: "https://receiver.central.example.com"
+
+controlService:
+  url: "https://api.bytefreezer.com"
+  accountId: "your-account-id"
+  bearerToken: "your-api-key"
+
+hostNetwork: true
+nodeName: "edge-eu-west-1"
+
+udp:
+  enabled: true
+  ports:
+    - port: 514
+      name: syslog
+```
+
+```bash
+helm install proxy-eu-west ./proxy -n site-eu-west -f proxy-eu-west.yaml
 ```
 
 ### High Availability
 
-```bash
-helm install proxy ./proxy \
-  --set replicaCount=3 \
-  --set receiver.url=https://receiver.example.com:8080 \
-  --set controlService.url=https://api.bytefreezer.com \
-  --set controlService.apiKey=YOUR_API_KEY \
-  --set resources.requests.cpu=500m \
-  --set resources.requests.memory=512Mi
-```
-
-### Using Values File
-
-Create `my-values.yaml`:
+Create `proxy-ha.yaml`:
 
 ```yaml
 receiver:
-  url: https://receiver.example.com:8080
+  url: "https://receiver.example.com"
 
 controlService:
-  url: https://api.bytefreezer.com
-  apiKey: YOUR_API_KEY
+  url: "https://api.bytefreezer.com"
+  accountId: "your-account-id"
+  bearerToken: "your-api-key"
 
-replicaCount: 2
+replicaCount: 3
+hostNetwork: false
 
 udp:
+  enabled: true
   ports:
     - port: 514
       name: syslog
-    - port: 5514
-      name: syslog-alt
+  service:
+    type: LoadBalancer
 
 resources:
   requests:
-    cpu: 200m
+    cpu: 500m
     memory: 512Mi
   limits:
     cpu: 2000m
     memory: 2Gi
 ```
 
-Install:
 ```bash
-helm install proxy ./proxy -f my-values.yaml
+helm install proxy ./proxy -n bytefreezer -f proxy-ha.yaml
 ```
 
 ## Troubleshooting
