@@ -1,0 +1,108 @@
+# ByteFreezer Proxy tp7 for Account eeijne2eapmn
+# Edge data collection and forwarding to on-prem receiver
+
+# Receiver configuration - on-prem receiver webhook
+receiver:
+  url: "http://192.168.86.139:8080"
+
+# Control Service configuration
+controlService:
+  url: "https://api.bytefreezer.com"
+  accountId: "eeijne2eapmn"
+  bearerToken: "ZOjMFLW7XC5WdZpLTV2cmM-PNdqPdjT0fruZ"
+  existingSecret: ""
+  timeoutSeconds: 30
+
+# Replica count
+replicaCount: 1
+
+# Image configuration
+image:
+  repository: ghcr.io/bytefreezer/bytefreezer-proxy
+  tag: "latest"
+  pullPolicy: Always
+
+imagePullSecrets: []
+
+# Service account
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# API service (health checks, metrics)
+service:
+  type: ClusterIP
+  apiPort: 8008
+
+# UDP listener configuration
+udp:
+  enabled: false
+  ports:
+    - port: 5514
+      name: syslog
+
+# Webhook listener (optional)
+webhook:
+  enabled: false
+  port: 8080
+
+# Batching configuration
+batching:
+  enabled: true
+  maxLines: 10000
+  maxBytes: 10485760  # 10MB
+  timeoutSeconds: 30
+  compressionEnabled: true
+  compressionLevel: 6
+
+# Spooling configuration (local disk buffer)
+spooling:
+  enabled: true
+  directory: "/var/spool/bytefreezer-proxy"
+  maxSizeBytes: 1073741824  # 1GB
+  retryAttempts: 3
+  retryIntervalSeconds: 60
+
+# Health reporting to control service
+healthReporting:
+  enabled: true
+  reportInterval: 30
+
+# Monitoring/metrics
+monitoring:
+  enabled: false
+  mode: "prometheus"
+  pushIntervalSeconds: 15
+  metricsPort: 9090
+
+# Resource limits
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+# Network mode - use hostNetwork for UDP port binding
+hostNetwork: true
+
+# Pod settings - run on node tp7
+nodeName: "tp7"
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Additional environment variables
+extraEnv: []
+
+# Pod security
+podSecurityContext:
+  fsGroup: 1000
+
+securityContext:
+  runAsNonRoot: false
+  runAsUser: 0
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
