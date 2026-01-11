@@ -43,18 +43,18 @@ spec:
             {{- end }}
           env:
             {{- if not .Values.s3.useIAMRole }}
-            - name: PACKER_S3SOURCE_ACCESS_KEY
+            - name: BYTEFREEZER_S3SOURCE_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "bytefreezer.s3SecretName" . }}
                   key: accessKey
-            - name: PACKER_S3SOURCE_SECRET_KEY
+            - name: BYTEFREEZER_S3SOURCE_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "bytefreezer.s3SecretName" . }}
                   key: secretKey
             {{- end }}
-            - name: PACKER_CONTROL_SERVICE_API_KEY
+            - name: BYTEFREEZER_CONTROL_SERVICE_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "bytefreezer.controlSecretName" . }}
@@ -77,10 +77,14 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/bytefreezer
+            - name: spool
+              mountPath: /var/spool/bytefreezer-packer
       volumes:
         - name: config
           configMap:
             name: {{ include "bytefreezer.packer.fullname" . }}
+        - name: spool
+          emptyDir: {}
       {{- with .Values.packer.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

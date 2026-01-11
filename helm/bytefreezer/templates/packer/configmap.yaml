@@ -14,17 +14,25 @@ data:
     server:
       api_port: {{ .Values.packer.service.apiPort }}
 
+    bytefreezer:
+      spool_path: "/var/spool/bytefreezer-packer"
+
     s3source:
       bucket_name: {{ .Values.s3.buckets.piper | quote }}
       region: {{ .Values.s3.region | quote }}
       endpoint: {{ include "bytefreezer.s3Endpoint" . | quote }}
       ssl: {{ .Values.s3.useSSL }}
       use_iam_role: {{ .Values.s3.useIAMRole }}
+      {{- if not .Values.s3.useIAMRole }}
+      access_key: {{ .Values.s3.accessKey | quote }}
+      secret_key: {{ .Values.s3.secretKey | quote }}
+      {{- end }}
 
     control_service:
       enabled: {{ .Values.controlService.enabled }}
       control_url: {{ .Values.controlService.url | quote }}
       timeout_seconds: {{ .Values.controlService.timeoutSeconds }}
+      api_key: {{ .Values.controlService.apiKey | quote }}
 
     parquet:
       max_file_size_mb: {{ .Values.packer.parquet.maxFileSizeMB }}

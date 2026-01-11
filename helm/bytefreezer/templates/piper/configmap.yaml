@@ -23,6 +23,10 @@ data:
       ssl: {{ .Values.s3.useSSL }}
       use_iam_role: {{ .Values.s3.useIAMRole }}
       poll_interval: {{ .Values.piper.pollInterval | quote }}
+      {{- if not .Values.s3.useIAMRole }}
+      access_key: {{ .Values.s3.accessKey | quote }}
+      secret_key: {{ .Values.s3.secretKey | quote }}
+      {{- end }}
 
     s3_destination:
       bucket_name: {{ .Values.s3.buckets.piper | quote }}
@@ -30,6 +34,10 @@ data:
       endpoint: {{ include "bytefreezer.s3Endpoint" . | quote }}
       ssl: {{ .Values.s3.useSSL }}
       use_iam_role: {{ .Values.s3.useIAMRole }}
+      {{- if not .Values.s3.useIAMRole }}
+      access_key: {{ .Values.s3.accessKey | quote }}
+      secret_key: {{ .Values.s3.secretKey | quote }}
+      {{- end }}
 
     s3_geoip:
       bucket_name: {{ .Values.s3.buckets.geoip | quote }}
@@ -37,6 +45,10 @@ data:
       endpoint: {{ include "bytefreezer.s3Endpoint" . | quote }}
       ssl: {{ .Values.s3.useSSL }}
       use_iam_role: {{ .Values.s3.useIAMRole }}
+      {{- if not .Values.s3.useIAMRole }}
+      access_key: {{ .Values.s3.accessKey | quote }}
+      secret_key: {{ .Values.s3.secretKey | quote }}
+      {{- end }}
 
     processing:
       max_concurrent_jobs: {{ .Values.piper.processing.maxConcurrentJobs }}
@@ -56,6 +68,7 @@ data:
       enabled: {{ .Values.controlService.enabled }}
       control_url: {{ .Values.controlService.url | quote }}
       timeout_seconds: {{ .Values.controlService.timeoutSeconds }}
+      api_key: {{ .Values.controlService.apiKey | quote }}
 
     monitoring:
       enabled: {{ .Values.monitoring.enabled }}

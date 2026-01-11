@@ -1,0 +1,106 @@
+# ByteFreezer On-Prem Deployment for Account eeijne2eapmn (Andrew Lasdorf)
+# Deploy to k3s cluster with MinIO storage - Multi-pod HA setup
+# Data retention: 2 days (set per-dataset in Control service)
+
+global:
+  deploymentType: "on_prem"
+
+# MinIO S3 Configuration
+s3:
+  endpoint: "192.168.86.132:9000"
+  region: "us-west-k3"
+  accessKey: "minioadmin"
+  secretKey: "miniopassword"
+  useSSL: false
+  buckets:
+    intake: "bytefreezer-intake"
+    piper: "bytefreezer-piper"
+    geoip: "bytefreezer-geoip"
+
+# Control Service (bytefreezer.com)
+controlService:
+  enabled: true
+  url: "https://api.bytefreezer.com"
+  apiKey: "ZOjMFLW7XC5WdZpLTV2cmM-PNdqPdjT0fruZ"
+  timeoutSeconds: 30
+
+# Receiver Configuration - 3 replicas with MetalLB LoadBalancer
+receiver:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: ghcr.io/bytefreezer/bytefreezer-receiver
+    tag: "latest"
+    pullPolicy: Always
+  webhookService:
+    enabled: true
+    type: LoadBalancer
+    port: 8080
+  healthReporting:
+    enabled: true
+    reportInterval: 30
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: receiver
+            topologyKey: kubernetes.io/hostname
+
+# Piper Configuration - 3 replicas spread across nodes
+piper:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: ghcr.io/bytefreezer/bytefreezer-piper
+    tag: "latest"
+    pullPolicy: Always
+  healthReporting:
+    enabled: true
+    reportInterval: 30
+  dlq:
+    enabled: true
+    retryAttempts: 4
+    retryIntervalSeconds: 60
+    cleanupIntervalSeconds: 3600
+    maxAgeDays: 2
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: piper
+            topologyKey: kubernetes.io/hostname
+
+# Packer Configuration - 3 replicas spread across nodes
+packer:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: ghcr.io/bytefreezer/bytefreezer-packer
+    tag: "latest"
+    pullPolicy: Always
+  healthReporting:
+    enabled: true
+    reportInterval: 30
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/component: packer
+            topologyKey: kubernetes.io/hostname
+
+# No bundled MinIO - using external
+minio:
+  enabled: false
+
+# No monitoring for now
+monitoring:
+  enabled: false
