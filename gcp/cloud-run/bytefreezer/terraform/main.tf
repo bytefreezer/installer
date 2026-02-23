@@ -291,37 +291,37 @@ resource "google_cloud_run_v2_service" "packer" {
       }
 
       env {
-        name  = "PACKER_S3SOURCE_ENDPOINT"
+        name  = "BYTEFREEZER_S3SOURCE_ENDPOINT"
         value = "storage.googleapis.com"
       }
 
       env {
-        name  = "PACKER_S3SOURCE_BUCKET"
+        name  = "BYTEFREEZER_S3SOURCE_BUCKET_NAME"
         value = "${google_storage_bucket.bytefreezer.name}/piper"
       }
 
       env {
-        name  = "PACKER_S3DESTINATION_ENDPOINT"
+        name  = "BYTEFREEZER_S3DESTINATION_ENDPOINT"
         value = "storage.googleapis.com"
       }
 
       env {
-        name  = "PACKER_S3DESTINATION_BUCKET"
+        name  = "BYTEFREEZER_S3DESTINATION_BUCKET_NAME"
         value = "${google_storage_bucket.bytefreezer.name}/packer"
       }
 
       env {
-        name  = "PACKER_S3_SSL"
+        name  = "BYTEFREEZER_S3SOURCE_SSL"
         value = "true"
       }
 
       env {
-        name  = "PACKER_CONTROL_URL"
+        name  = "BYTEFREEZER_CONTROL_SERVICE_URL"
         value = var.control_service_url
       }
 
       env {
-        name = "PACKER_CONTROL_SERVICE_API_KEY"
+        name = "BYTEFREEZER_CONTROL_SERVICE_API_KEY"
         value_source {
           secret_key_ref {
             secret  = google_secret_manager_secret.api_key.secret_id

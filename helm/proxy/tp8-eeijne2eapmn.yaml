@@ -3,7 +3,7 @@
 
 # Receiver configuration - on-prem receiver webhook
 receiver:
-  url: "http://192.168.86.139:8080"
+  url: "http://192.168.86.139:8180"
 
 # Control Service configuration
 controlService:

@@ -40,6 +40,9 @@ metadata:
   {{- end }}
 spec:
   type: {{ .Values.receiver.webhookService.type }}
+  {{- if .Values.receiver.webhookService.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.receiver.webhookService.loadBalancerIP }}
+  {{- end }}
   ports:
     - port: {{ .Values.receiver.webhookService.port }}
       targetPort: webhook

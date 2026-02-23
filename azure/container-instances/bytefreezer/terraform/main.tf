@@ -179,17 +179,17 @@ resource "azurerm_container_group" "packer" {
     }
 
     environment_variables = {
-      PACKER_S3SOURCE_ENDPOINT     = azurerm_storage_account.bytefreezer.primary_blob_endpoint
-      PACKER_S3SOURCE_BUCKET       = "bytefreezer-piper"
-      PACKER_S3_SSL                = "true"
+      BYTEFREEZER_S3SOURCE_ENDPOINT     = azurerm_storage_account.bytefreezer.primary_blob_endpoint
+      BYTEFREEZER_S3SOURCE_BUCKET_NAME  = "bytefreezer-piper"
+      BYTEFREEZER_S3SOURCE_SSL          = "true"
       # Note: Packer outputs to per-tenant destinations from Control API
-      PACKER_CONTROL_URL           = var.control_service_url
+      BYTEFREEZER_CONTROL_SERVICE_URL   = var.control_service_url
     }
 
     secure_environment_variables = {
-      PACKER_S3SOURCE_ACCESS_KEY       = azurerm_storage_account.bytefreezer.name
-      PACKER_S3SOURCE_SECRET_KEY       = azurerm_storage_account.bytefreezer.primary_access_key
-      PACKER_CONTROL_SERVICE_API_KEY   = var.control_service_api_key
+      BYTEFREEZER_S3SOURCE_ACCESS_KEY       = azurerm_storage_account.bytefreezer.name
+      BYTEFREEZER_S3SOURCE_SECRET_KEY       = azurerm_storage_account.bytefreezer.primary_access_key
+      BYTEFREEZER_CONTROL_SERVICE_API_KEY   = var.control_service_api_key
     }
   }
 

@@ -15,9 +15,9 @@ ExecStart=/usr/bin/docker run --rm \
   --name bytefreezer-packer \
   --network host \
   -v {{ bytefreezer_config_dir }}/packer/config.yaml:/etc/bytefreezer/config.yaml:ro \
-  -e PACKER_S3SOURCE_ACCESS_KEY={{ vault_s3_access_key | default(vault_minio_root_password | default('minioadmin')) }} \
-  -e PACKER_S3SOURCE_SECRET_KEY={{ vault_s3_secret_key | default(vault_minio_root_password | default('minioadmin')) }} \
-  -e PACKER_CONTROL_SERVICE_API_KEY={{ vault_control_service_api_key }} \
+  -e BYTEFREEZER_S3SOURCE_ACCESS_KEY={{ vault_s3_access_key | default(vault_minio_root_password | default('minioadmin')) }} \
+  -e BYTEFREEZER_S3SOURCE_SECRET_KEY={{ vault_s3_secret_key | default(vault_minio_root_password | default('minioadmin')) }} \
+  -e BYTEFREEZER_CONTROL_SERVICE_API_KEY={{ vault_control_service_api_key }} \
   {{ image_registry }}/bytefreezer-packer:{{ image_tag }}
 
 ExecStop=/usr/bin/docker stop bytefreezer-packer

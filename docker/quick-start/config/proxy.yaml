@@ -1,0 +1,53 @@
+app:
+  name: "bytefreezer-proxy"
+  version: "1.0.0"
+
+server:
+  api_port: 8008
+
+receiver:
+  url: "http://receiver:8080"
+
+control_service:
+  enabled: true
+  control_url: ""
+  timeout_seconds: 30
+
+udp:
+  enabled: true
+  ports:
+    - port: 5514
+      name: syslog
+
+webhook:
+  enabled: false
+  port: 8080
+
+batching:
+  enabled: true
+  max_lines: 10000
+  max_bytes: 10485760
+  timeout_seconds: 30
+  compression_enabled: true
+  compression_level: 6
+
+spooling:
+  enabled: true
+  directory: "/var/spool/bytefreezer-proxy"
+  max_size_bytes: 1073741824
+  retry_attempts: 3
+  retry_interval_seconds: 60
+
+health_reporting:
+  enabled: true
+  report_interval: 30
+  timeout_seconds: 10
+  register_on_startup: true
+
+monitoring:
+  enabled: false
+  mode: "prometheus"
+  push_interval_seconds: 15
+  metrics_host: "0.0.0.0"
+  metrics_port: 9090
+  service_name: "bytefreezer-proxy"

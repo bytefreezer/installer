@@ -438,22 +438,22 @@ Resources:
             - ContainerPort: 8083
               Protocol: tcp
           Environment:
-            - Name: PACKER_S3SOURCE_BUCKET_NAME
+            - Name: BYTEFREEZER_S3SOURCE_BUCKET_NAME
               Value: !Ref PiperBucket
-            - Name: PACKER_S3SOURCE_REGION
+            - Name: BYTEFREEZER_S3SOURCE_REGION
               Value: !Ref AWS::Region
-            - Name: PACKER_S3SOURCE_ENDPOINT
+            - Name: BYTEFREEZER_S3SOURCE_ENDPOINT
               Value: !Sub 's3.${AWS::Region}.amazonaws.com'
-            - Name: PACKER_S3SOURCE_SSL
+            - Name: BYTEFREEZER_S3SOURCE_SSL
               Value: 'true'
-            - Name: PACKER_S3SOURCE_USE_IAM_ROLE
+            - Name: BYTEFREEZER_S3SOURCE_USE_IAM_ROLE
               Value: 'true'
-            - Name: PACKER_CONTROL_SERVICE_URL
+            - Name: BYTEFREEZER_CONTROL_SERVICE_URL
               Value: !Ref ControlServiceUrl
-            - Name: PACKER_API_PORT
+            - Name: BYTEFREEZER_API_PORT
               Value: '8083'
           Secrets:
-            - Name: PACKER_CONTROL_SERVICE_API_KEY
+            - Name: BYTEFREEZER_CONTROL_SERVICE_API_KEY
               ValueFrom: !Ref ControlServiceApiKeyArn
           LogConfiguration:
             LogDriver: awslogs

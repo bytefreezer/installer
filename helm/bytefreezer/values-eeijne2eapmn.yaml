@@ -35,7 +35,8 @@ receiver:
   webhookService:
     enabled: true
     type: LoadBalancer
-    port: 8080
+    port: 8180
+    loadBalancerIP: "192.168.86.139"
   healthReporting:
     enabled: true
     reportInterval: 30

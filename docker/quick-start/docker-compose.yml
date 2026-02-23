@@ -1,11 +1,18 @@
-# ByteFreezer Processing Stack - Docker Compose
-# Deploys: receiver, piper, packer, minio (optional)
+# ByteFreezer Quick Start - All-in-One Docker Compose
+# Runs the full pipeline locally with MinIO for storage.
+# Services register with hosted control at api.bytefreezer.com.
+#
+# Usage:
+#   1. Copy .env and set CONTROL_API_KEY + ACCOUNT_ID
+#   2. docker compose up -d
+#   3. Configure dataset at bytefreezer.com
+#   4. Watch data flow through the pipeline
 
 services:
-  # MinIO - S3-compatible storage (optional, disable if using external S3)
+  # MinIO - local S3-compatible storage
   minio:
     image: minio/minio:RELEASE.2024-01-16T16-07-38Z
-    container_name: bytefreezer-minio
+    container_name: bf-minio
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
@@ -17,17 +24,17 @@ services:
       - minio-data:/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 10s
+      interval: 15s
+      timeout: 5s
       retries: 3
     restart: unless-stopped
-    profiles:
-      - with-minio
+    networks:
+      - bytefreezer
 
-  # MinIO bucket initialization
+  # Create required S3 buckets
   minio-init:
     image: minio/mc:latest
-    container_name: bytefreezer-minio-init
+    container_name: bf-minio-init
     depends_on:
       minio:
         condition: service_healthy
@@ -43,21 +50,25 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-    profiles:
-      - with-minio
+    networks:
+      - bytefreezer
 
-  # Receiver - accepts data from proxies, stores to S3
+  # Receiver - accepts data from proxy, stores to S3
   receiver:
     image: ${IMAGE_REGISTRY:-ghcr.io/bytefreezer}/bytefreezer-receiver:${IMAGE_TAG:-latest}
-    container_name: bytefreezer-receiver
+    container_name: bf-receiver
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
     ports:
-      - "8080:8080"  # Webhook (data intake)
-      - "8081:8081"  # API (health)
-      - "9091:9091"  # Metrics (Prometheus)
+      - "8080:8080"
+      - "8081:8081"
     environment:
       RECEIVER_S3_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
       RECEIVER_S3_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
       RECEIVER_CONTROL_SERVICE_API_KEY: ${CONTROL_API_KEY:-}
+      CONTROL_URL: ${CONTROL_URL:-https://api.bytefreezer.com}
+      ACCOUNT_ID: ${ACCOUNT_ID:-}
     volumes:
       - ./config/receiver.yaml:/etc/bytefreezer/config.yaml:ro
       - receiver-spool:/var/spool/bytefreezer-receiver
@@ -67,14 +78,18 @@ services:
       timeout: 10s
       retries: 3
     restart: unless-stopped
+    networks:
+      - bytefreezer
 
   # Piper - processes raw data, applies transformations
   piper:
     image: ${IMAGE_REGISTRY:-ghcr.io/bytefreezer}/bytefreezer-piper:${IMAGE_TAG:-latest}
-    container_name: bytefreezer-piper
+    container_name: bf-piper
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
     ports:
-      - "8082:8082"  # API
-      - "9092:9092"  # Metrics (Prometheus)
+      - "8082:8082"
     environment:
       PIPER_S3_SOURCE_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
       PIPER_S3_SOURCE_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
@@ -83,6 +98,8 @@ services:
       PIPER_S3_GEOIP_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
       PIPER_S3_GEOIP_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
       PIPER_CONTROL_SERVICE_API_KEY: ${CONTROL_API_KEY:-}
+      CONTROL_URL: ${CONTROL_URL:-https://api.bytefreezer.com}
+      ACCOUNT_ID: ${ACCOUNT_ID:-}
     volumes:
       - ./config/piper.yaml:/etc/bytefreezer/config.yaml:ro
     healthcheck:
@@ -91,18 +108,24 @@ services:
       timeout: 10s
       retries: 3
     restart: unless-stopped
+    networks:
+      - bytefreezer
 
-  # Packer - compresses data into Parquet files
+  # Packer - converts processed data to Parquet
   packer:
     image: ${IMAGE_REGISTRY:-ghcr.io/bytefreezer}/bytefreezer-packer:${IMAGE_TAG:-latest}
-    container_name: bytefreezer-packer
+    container_name: bf-packer
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
     ports:
-      - "8083:8083"  # API
-      - "9093:9093"  # Metrics (Prometheus)
+      - "8083:8083"
     environment:
       BYTEFREEZER_S3SOURCE_ACCESS_KEY: ${S3_ACCESS_KEY:-minioadmin}
       BYTEFREEZER_S3SOURCE_SECRET_KEY: ${S3_SECRET_KEY:-minioadmin}
       BYTEFREEZER_CONTROL_SERVICE_API_KEY: ${CONTROL_API_KEY:-}
+      CONTROL_URL: ${CONTROL_URL:-https://api.bytefreezer.com}
+      ACCOUNT_ID: ${ACCOUNT_ID:-}
     volumes:
       - ./config/packer.yaml:/etc/bytefreezer/config.yaml:ro
     healthcheck:
@@ -111,33 +134,60 @@ services:
       timeout: 10s
       retries: 3
     restart: unless-stopped
+    networks:
+      - bytefreezer
 
-  # Prometheus - Metrics collection and monitoring (optional)
-  prometheus:
-    image: prom/prometheus:v2.48.0
-    container_name: bytefreezer-prometheus
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.path=/prometheus
-      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-15d}
-      - --web.enable-lifecycle
-      - --web.console.libraries=/usr/share/prometheus/console_libraries
-      - --web.console.templates=/usr/share/prometheus/consoles
+  # Proxy - collects data and forwards to receiver
+  proxy:
+    image: ${IMAGE_REGISTRY:-ghcr.io/bytefreezer}/bytefreezer-proxy:${IMAGE_TAG:-latest}
+    container_name: bf-proxy
+    depends_on:
+      receiver:
+        condition: service_healthy
     ports:
-      - "9090:9090"
+      - "8008:8008"
+      - "5514:5514/udp"
+    environment:
+      PROXY_CONTROL_SERVICE_API_KEY: ${CONTROL_API_KEY:-}
+      CONTROL_URL: ${CONTROL_URL:-https://api.bytefreezer.com}
+      ACCOUNT_ID: ${ACCOUNT_ID:-}
     volumes:
-      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus-data:/prometheus
+      - ./config/proxy.yaml:/etc/bytefreezer/config.yaml:ro
+      - proxy-spool:/var/spool/bytefreezer-proxy
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      test: ["CMD", "curl", "-f", "http://localhost:8008/api/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
     restart: unless-stopped
-    profiles:
-      - with-prometheus
+    networks:
+      - bytefreezer
+
+  # Fakedata - sends synthetic syslog to proxy
+  fakedata:
+    image: ${IMAGE_REGISTRY:-ghcr.io/bytefreezer}/bytefreezer-fakedata:${IMAGE_TAG:-latest}
+    container_name: bf-fakedata
+    depends_on:
+      proxy:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Sending syslog data to proxy:5514 at 10 msg/s"
+        while true; do
+          /bytefreezer-fakedata syslog --host proxy --port 5514 --rate 10
+          echo "Fakedata exited, retrying in 10s..."
+          sleep 10
+        done
+    restart: unless-stopped
+    networks:
+      - bytefreezer
 
 volumes:
   minio-data:
   receiver-spool:
-  prometheus-data:
+  proxy-spool:
+
+networks:
+  bytefreezer:
+    driver: bridge

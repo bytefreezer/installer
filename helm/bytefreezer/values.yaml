@@ -182,6 +182,14 @@ receiver:
     retryAttempts: 3
     retryIntervalSeconds: 60
 
+  # Dead Letter Queue configuration
+  dlq:
+    enabled: true
+    retryAttempts: 3
+    retryIntervalSeconds: 60
+    cleanupIntervalSeconds: 300
+    maxAgeDays: 7
+
   resources:
     requests:
       cpu: 100m

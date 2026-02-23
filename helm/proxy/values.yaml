@@ -52,9 +52,9 @@ udp:
     # Specify a static IP from your MetalLB pool
     loadBalancerIP: ""
     # Service annotations
-    annotations:
-      metallb.universe.tf/loadBalancerIPs: "192.168.86.139"
-      metallb.universe.tf/address-pool: "postgresql-pool"
+    annotations: {}
+      # metallb.universe.tf/loadBalancerIPs: "192.168.86.100"
+      # metallb.universe.tf/address-pool: "default-pool"
 
 # Webhook listener (optional)
 webhook:

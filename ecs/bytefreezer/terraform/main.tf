@@ -480,17 +480,17 @@ resource "aws_ecs_task_definition" "packer" {
     ]
 
     environment = [
-      { name = "PACKER_S3SOURCE_BUCKET_NAME", value = aws_s3_bucket.piper.id },
-      { name = "PACKER_S3SOURCE_REGION", value = data.aws_region.current.name },
-      { name = "PACKER_S3SOURCE_ENDPOINT", value = "s3.${data.aws_region.current.name}.amazonaws.com" },
-      { name = "PACKER_S3SOURCE_SSL", value = "true" },
-      { name = "PACKER_S3SOURCE_USE_IAM_ROLE", value = "true" },
-      { name = "PACKER_CONTROL_SERVICE_URL", value = var.control_service_url },
-      { name = "PACKER_API_PORT", value = "8083" }
+      { name = "BYTEFREEZER_S3SOURCE_BUCKET_NAME", value = aws_s3_bucket.piper.id },
+      { name = "BYTEFREEZER_S3SOURCE_REGION", value = data.aws_region.current.name },
+      { name = "BYTEFREEZER_S3SOURCE_ENDPOINT", value = "s3.${data.aws_region.current.name}.amazonaws.com" },
+      { name = "BYTEFREEZER_S3SOURCE_SSL", value = "true" },
+      { name = "BYTEFREEZER_S3SOURCE_USE_IAM_ROLE", value = "true" },
+      { name = "BYTEFREEZER_CONTROL_SERVICE_URL", value = var.control_service_url },
+      { name = "BYTEFREEZER_API_PORT", value = "8083" }
     ]
 
     secrets = [{
-      name      = "PACKER_CONTROL_SERVICE_API_KEY"
+      name      = "BYTEFREEZER_CONTROL_SERVICE_API_KEY"
       valueFrom = var.control_service_api_key_arn
     }]
 

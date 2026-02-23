@@ -14,12 +14,17 @@ data:
     server:
       api_port: {{ .Values.receiver.service.apiPort }}
 
-    webhook:
-      port: {{ .Values.receiver.service.webhookPort }}
-      read_timeout_seconds: 30
-      write_timeout_seconds: 30
+    bytefreezer:
+      upload_worker_count: {{ .Values.receiver.uploadWorkerCount | default 5 }}
+      spool_path: {{ .Values.receiver.spooling.directory | quote }}
 
-    s3:
+    protocols:
+      webhook:
+        enabled: true
+        port: {{ .Values.receiver.service.webhookPort }}
+        max_payload_size: {{ .Values.receiver.maxPayloadSize | default 10485760 }}
+
+    s3destination:
       bucket_name: {{ .Values.s3.buckets.intake | quote }}
       region: {{ .Values.s3.region | quote }}
       endpoint: {{ include "bytefreezer.s3Endpoint" . | quote }}
@@ -29,6 +34,18 @@ data:
       access_key: {{ .Values.s3.accessKey | quote }}
       secret_key: {{ .Values.s3.secretKey | quote }}
       {{- end }}
+
+    housekeeping:
+      enabled: true
+      intervalseconds: 60
+
+    dlq:
+      enabled: {{ if .Values.receiver.dlq }}{{ .Values.receiver.dlq.enabled | default true }}{{ else }}true{{ end }}
+      directory: {{ .Values.receiver.spooling.directory | quote }}
+      retry_attempts: {{ if .Values.receiver.dlq }}{{ .Values.receiver.dlq.retryAttempts | default 3 }}{{ else }}3{{ end }}
+      retry_interval_seconds: {{ if .Values.receiver.dlq }}{{ .Values.receiver.dlq.retryIntervalSeconds | default 60 }}{{ else }}60{{ end }}
+      cleanup_interval_seconds: {{ if .Values.receiver.dlq }}{{ .Values.receiver.dlq.cleanupIntervalSeconds | default 300 }}{{ else }}300{{ end }}
+      max_age_days: {{ if .Values.receiver.dlq }}{{ .Values.receiver.dlq.maxAgeDays | default 7 }}{{ else }}7{{ end }}
 
     control_service:
       enabled: {{ .Values.controlService.enabled }}
