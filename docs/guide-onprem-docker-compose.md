@@ -65,7 +65,7 @@ Copy the **Account ID** and **API Key** (shown only once).
 
 ---
 
-## Phase 2: Deploy the Stack on Tiny
+## Phase 2: Deploy the Stack on Testhost
 
 ### Step 3 — Clone or copy the installer
 

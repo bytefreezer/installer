@@ -43,7 +43,7 @@ Kubernetes Cluster
   bytefreezer.com (control plane)
 ```
 
-### Version B: Proxy on Tiny, Stack in Kubernetes
+### Version B: Proxy on Testhost, Stack in Kubernetes
 
 ```
 testhost                           Kubernetes Cluster
@@ -319,7 +319,7 @@ Skip to **Phase 4**.
 
 ---
 
-## Phase 3B: Deploy Proxy on Tiny (Sub-version)
+## Phase 3B: Deploy Proxy on Testhost (Sub-version)
 
 Use this if you want the proxy running outside the cluster (edge deployment pattern).
 

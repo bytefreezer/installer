@@ -77,7 +77,7 @@ Do NOT assign a proxy yet — we will do that after the proxy registers.
 
 ---
 
-## Phase 2: Deploy Proxy on Tiny
+## Phase 2: Deploy Proxy on Testhost
 
 ### Step 5 — Create project directory
 
