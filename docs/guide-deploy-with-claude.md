@@ -2,7 +2,7 @@
 
 Use Claude Code as your deployment assistant. Connect it to the ByteFreezer MCP server and tell it what you want — Claude handles tenant creation, dataset configuration, config generation, deployment, and verification.
 
-**Objective:** Instead of following a guide step by step, describe your deployment goal in plain English. Claude uses 63 ByteFreezer MCP tools to create tenants, datasets, generate deployment configs, and verify everything is working.
+**Objective:** Instead of following a guide step by step, describe your deployment goal in plain English. Claude uses 78 ByteFreezer MCP tools to create tenants, datasets, generate deployment configs, and verify everything is working.
 
 > **Do not send sensitive or production data to bytefreezer.com.** The control plane is a shared test platform. For on-prem deployments your data stays on your infrastructure, but the control plane is not secured for production use.
 
