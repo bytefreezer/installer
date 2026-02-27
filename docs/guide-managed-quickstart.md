@@ -3,7 +3,9 @@
 Deploy a single proxy on your host and use the managed platform for everything else.
 All processing and storage runs on bytefreezer.com — you only install the proxy.
 
-**Image tag:** `v1.0.0-rc.0225b`
+**Objective:** End-to-end test on the managed test platform. Verify your proxy is working, data flows through the pipeline, and you can see and query parquet files directly on bytefreezer.com.
+
+> **Do not send sensitive or production data.** This is a shared test platform and is not secured for production use. Use fakedata or non-sensitive test logs only.
 
 ## What You Need
 
@@ -95,7 +97,7 @@ cd ~/bytefreezer-proxy
 cat > docker-compose.yml << 'EOF'
 services:
   proxy:
-    image: ghcr.io/bytefreezer/bytefreezer-proxy:v1.0.0-rc.0225b
+    image: ghcr.io/bytefreezer/bytefreezer-proxy:latest
     container_name: bytefreezer-proxy
     ports:
       - "8008:8008"

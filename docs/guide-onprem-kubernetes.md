@@ -3,7 +3,9 @@
 Deploy the complete ByteFreezer processing stack to a Kubernetes cluster using Helm charts.
 Control plane runs on bytefreezer.com. Processing, storage, and proxy are self-hosted in your cluster.
 
-**Image tag:** `v1.0.0-rc.0225b`
+**Objective:** End-to-end test of the full on-prem stack on Kubernetes. Verify all services register, data flows from proxy through receiver/piper/packer, and parquet files land in your cluster's MinIO. To query your parquet data, use the [example query project](https://github.com/bytefreezer/query-example) or build your own using AI and [ByteFreezer MCP](https://github.com/bytefreezer/mcp).
+
+> **Do not send sensitive or production data to bytefreezer.com.** The control plane on bytefreezer.com is a shared test platform. Your data stays in your cluster, but the control plane is not secured for production use.
 
 ## What You Need
 
@@ -136,7 +138,7 @@ receiver:
   replicaCount: 1
   image:
     repository: ghcr.io/bytefreezer/bytefreezer-receiver
-    tag: "v1.0.0-rc.0225b"
+    tag: "latest"
   webhookService:
     enabled: true
     type: LoadBalancer
@@ -150,7 +152,7 @@ piper:
   replicaCount: 1
   image:
     repository: ghcr.io/bytefreezer/bytefreezer-piper
-    tag: "v1.0.0-rc.0225b"
+    tag: "latest"
 
 # Packer
 packer:
@@ -158,7 +160,7 @@ packer:
   replicaCount: 1
   image:
     repository: ghcr.io/bytefreezer/bytefreezer-packer
-    tag: "v1.0.0-rc.0225b"
+    tag: "latest"
 ```
 
 Replace `YOUR_API_KEY_HERE` with the key from Step 1.
@@ -253,7 +255,7 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/bytefreezer/bytefreezer-proxy
-  tag: "v1.0.0-rc.0225b"
+  tag: "latest"
 
 hostNetwork: true
 nodeName: ""
@@ -356,7 +358,7 @@ Create `docker-compose.yml`:
 cat > docker-compose.yml << 'EOF'
 services:
   proxy:
-    image: ghcr.io/bytefreezer/bytefreezer-proxy:v1.0.0-rc.0225b
+    image: ghcr.io/bytefreezer/bytefreezer-proxy:latest
     container_name: bytefreezer-proxy
     ports:
       - "8008:8008"
@@ -684,7 +686,7 @@ kubectl describe pod <pod-name> -n bytefreezer
 kubectl get events -n bytefreezer --sort-by='.lastTimestamp'
 # May need imagePullSecrets for ghcr.io
 # For public images, verify tag exists:
-# docker pull ghcr.io/bytefreezer/bytefreezer-receiver:v1.0.0-rc.0225b
+# docker pull ghcr.io/bytefreezer/bytefreezer-receiver:latest
 ```
 
 **Services not registering:**

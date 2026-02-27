@@ -3,7 +3,9 @@
 Deploy the complete ByteFreezer processing stack on a single host.
 Control plane runs on bytefreezer.com. Processing, storage, and proxy are all self-hosted.
 
-**Image tag:** `v1.0.0-rc.0225b`
+**Objective:** End-to-end test of the full on-prem stack. Verify all services register, data flows from proxy through receiver/piper/packer, and parquet files land in your local MinIO. To query your parquet data, use the [example query project](https://github.com/bytefreezer/query-example) or build your own using AI and [ByteFreezer MCP](https://github.com/bytefreezer/mcp).
+
+> **Do not send sensitive or production data to bytefreezer.com.** The control plane on bytefreezer.com is a shared test platform. Your data stays on your host, but the control plane is not secured for production use.
 
 ## What You Need
 
@@ -90,7 +92,7 @@ cp .env .env.backup  # if cloned
 
 cat > .env << 'EOF'
 IMAGE_REGISTRY=ghcr.io/bytefreezer
-IMAGE_TAG=v1.0.0-rc.0225b
+IMAGE_TAG=latest
 
 CONTROL_URL=https://api.bytefreezer.com
 CONTROL_API_KEY=YOUR_API_KEY_HERE
