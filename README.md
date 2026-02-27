@@ -2,6 +2,37 @@
 
 Self-hosted deployment packages for ByteFreezer data processing pipeline.
 
+## Deploy with Claude + MCP
+
+Skip the manual steps. Connect [Claude Code](https://docs.anthropic.com/en/docs/claude-code) to the ByteFreezer MCP server and describe your deployment in plain English — Claude creates accounts, generates configs, deploys services, and verifies the pipeline end to end.
+
+```bash
+claude mcp add --transport http bytefreezer \
+  https://mcp.bytefreezer.com/mcp \
+  --header "Authorization: Bearer YOUR_API_KEY"
+```
+
+Then tell Claude what you want:
+
+> *"Deploy a full on-prem ByteFreezer stack with Docker Compose on this host. Create an account, tenant, and syslog dataset. Start fakedata and verify data flows to parquet."*
+
+Claude handles everything — account creation, config generation, deployment, dataset assignment, and verification. Works with Docker Compose, Kubernetes (Helm), systemd, or standalone binaries.
+
+**[Read the full guide](docs/guide-deploy-with-claude.md)**
+
+---
+
+## Getting Started Guides
+
+| Guide | Description |
+|-------|-------------|
+| [Managed Quickstart](docs/guide-managed-quickstart.md) | Proxy test only — deploy a single proxy, we handle the rest |
+| [On-Prem: Docker Compose](docs/guide-onprem-docker-compose.md) | Full stack on a single host, your data stays local |
+| [On-Prem: Kubernetes](docs/guide-onprem-kubernetes.md) | Full stack on K8s with Helm charts |
+| [Deploy with Claude + MCP](docs/guide-deploy-with-claude.md) | AI-assisted deployment using Claude Code |
+
+---
+
 ## Deployment Options
 
 | Platform | Directory | Description |
