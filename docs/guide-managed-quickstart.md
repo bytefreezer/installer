@@ -7,14 +7,14 @@ All processing and storage runs on bytefreezer.com — you only install the prox
 
 ## What You Need
 
-- A Linux host with Docker and Docker Compose ("tiny")
-- Network access from tiny to bytefreezer.com on HTTPS (receiver and control API)
+- A Linux host with Docker and Docker Compose ("testhost")
+- Network access from testhost to bytefreezer.com on HTTPS (receiver and control API)
 - A web browser
 
 ## Architecture
 
 ```
-tiny                              bytefreezer.com (managed)
+testhost                              bytefreezer.com (managed)
 +-----------+    HTTPS POST       +----------+     +-------+     +-------+     +--------+
 |   Proxy   | -----------------> | Receiver | --> | Piper | --> | Packer | --> | MinIO  |
 +-----------+                    +----------+     +-------+     +-------+     +--------+
@@ -81,10 +81,10 @@ Do NOT assign a proxy yet — we will do that after the proxy registers.
 
 ### Step 5 — Create project directory
 
-SSH to tiny:
+SSH to testhost:
 
 ```bash
-ssh tiny
+ssh testhost
 mkdir -p ~/bytefreezer-proxy/config
 cd ~/bytefreezer-proxy
 ```
@@ -212,7 +212,7 @@ Save.
 
 ### Step 12 — Run fakedata
 
-On tiny, in a separate terminal:
+On testhost, in a separate terminal:
 
 ```bash
 docker run --rm --network host \
@@ -238,7 +238,7 @@ docker compose logs proxy | grep -i "forward\|batch\|sent"
 ```
 
 If you see connection errors to the receiver, check:
-- Can you reach it? `curl -s https://receiver.bytefreezer.com` from tiny
+- Can you reach it? `curl -s https://receiver.bytefreezer.com` from testhost
 - DNS resolving? `dig receiver.bytefreezer.com`
 
 ---

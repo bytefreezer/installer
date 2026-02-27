@@ -7,15 +7,15 @@ Control plane runs on bytefreezer.com. Processing, storage, and proxy are all se
 
 ## What You Need
 
-- A Linux host with Docker and Docker Compose ("tiny")
+- A Linux host with Docker and Docker Compose ("testhost")
   - Minimum: 4 GB RAM, 20 GB disk
-- Network access from tiny to api.bytefreezer.com on HTTPS (control API)
+- Network access from testhost to api.bytefreezer.com on HTTPS (control API)
 - A web browser
 
 ## Architecture
 
 ```
-tiny (self-hosted)
+testhost (self-hosted)
 +----------+    UDP     +-----------+    HTTP     +----------+     +-------+
 | fakedata | ---------> |   Proxy   | ---------> | Receiver |     | MinIO |
 +----------+  syslog    +-----------+   POST     +----+-----+     +---+---+
@@ -69,10 +69,10 @@ Copy the **Account ID** and **API Key** (shown only once).
 
 ### Step 3 — Clone or copy the installer
 
-SSH to tiny:
+SSH to testhost:
 
 ```bash
-ssh tiny
+ssh testhost
 
 # Option A: Clone the repo
 git clone https://github.com/bytefreezer/installer.git
@@ -147,7 +147,7 @@ Note: bf-fakedata will restart repeatedly until a dataset is configured and prox
 
 ### Step 8 — Verify MinIO buckets
 
-Open http://tiny:9001 in your browser (or replace `tiny` with the host IP).
+Open http://testhost:9001 in your browser (or replace `testhost` with the host IP).
 Login: `minioadmin` / `minioadmin`.
 
 **Verify:** Four buckets exist: `intake`, `piper`, `packer`, `geoip`.
@@ -248,7 +248,7 @@ docker compose logs receiver --tail 20
 # Look for: "stored to S3", file writes to intake bucket
 ```
 
-**Verify in MinIO:** Open http://tiny:9001 → `intake` bucket.
+**Verify in MinIO:** Open http://testhost:9001 → `intake` bucket.
 Files should appear with `.jsonl.snappy` extension within 30-60 seconds.
 
 ### Step 17 — Check piper processes data

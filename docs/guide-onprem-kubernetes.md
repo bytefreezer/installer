@@ -13,7 +13,7 @@ Control plane runs on bytefreezer.com. Processing, storage, and proxy are self-h
 - Network access from cluster to api.bytefreezer.com on HTTPS (control API)
 - MetalLB installed (for LoadBalancer services on bare-metal/k3s)
 - A web browser
-- (Sub-version B only) A Linux host for edge proxy ("tiny")
+- (Sub-version B only) A Linux host for edge proxy ("testhost")
 
 ## Architecture
 
@@ -46,7 +46,7 @@ Kubernetes Cluster
 ### Version B: Proxy on Tiny, Stack in Kubernetes
 
 ```
-tiny                           Kubernetes Cluster
+testhost                           Kubernetes Cluster
 +----------+    UDP            +--------------------------------------------------+
 | fakedata |--->+--------+     | +----------+     +-------+                       |
 +----------+   | Proxy  |---->| | Receiver |     | MinIO |                       |
@@ -325,7 +325,7 @@ Use this if you want the proxy running outside the cluster (edge deployment patt
 
 ### Step 10B — Get receiver external URL
 
-The receiver needs to be accessible from tiny. If you used LoadBalancer:
+The receiver needs to be accessible from testhost. If you used LoadBalancer:
 
 ```bash
 RECEIVER_IP=$(kubectl get svc bytefreezer-receiver-webhook -n bytefreezer -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
@@ -334,18 +334,18 @@ echo "Receiver URL: http://${RECEIVER_IP}:8080"
 
 If using NodePort or no LoadBalancer, use the node IP + NodePort.
 
-**Verify:** From tiny, test connectivity:
+**Verify:** From testhost, test connectivity:
 ```bash
 curl -s http://${RECEIVER_IP}:8080
 # Should get a response (even if error, confirms network path)
 ```
 
-### Step 11B — Deploy proxy on tiny via Docker
+### Step 11B — Deploy proxy on testhost via Docker
 
-SSH to tiny:
+SSH to testhost:
 
 ```bash
-ssh tiny
+ssh testhost
 mkdir -p ~/bytefreezer-proxy/config
 cd ~/bytefreezer-proxy
 ```
@@ -444,7 +444,7 @@ docker compose logs proxy | head -20
 
 **Verify:** Proxy appears on bytefreezer.com Service Status page.
 
-`PROXY_IP` for fakedata = tiny's IP address.
+`PROXY_IP` for fakedata = testhost's IP address.
 
 ---
 
@@ -521,9 +521,9 @@ EOF
 
 Replace `PROXY_IP_HERE` with the proxy IP from Phase 3A.
 
-**If proxy is on tiny (Version B):**
+**If proxy is on testhost (Version B):**
 
-On tiny:
+On testhost:
 
 ```bash
 docker run --rm --network host \
@@ -537,7 +537,7 @@ docker run --rm --network host \
 # Version A (k8s)
 kubectl logs -n bytefreezer -l app.kubernetes.io/name=proxy --tail 20
 
-# Version B (tiny)
+# Version B (testhost)
 docker compose logs proxy --tail 20
 ```
 
@@ -657,10 +657,10 @@ kubectl delete pvc -n bytefreezer --all
 kubectl delete namespace bytefreezer
 ```
 
-### Stop proxy on tiny (Version B only)
+### Stop proxy on testhost (Version B only)
 
 ```bash
-ssh tiny
+ssh testhost
 cd ~/bytefreezer-proxy
 docker compose down -v
 ```
@@ -704,10 +704,10 @@ kubectl get pvc -n bytefreezer
 
 **Proxy cannot reach receiver (Version B):**
 ```bash
-# From tiny:
+# From testhost:
 curl -v http://RECEIVER_IP:8080
 # Check LoadBalancer IP is assigned
-# Check firewall rules between tiny and cluster
+# Check firewall rules between testhost and cluster
 ```
 
 **No data in MinIO buckets:**
