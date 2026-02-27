@@ -8,14 +8,14 @@ Use Claude Code as your deployment assistant. Connect it to the ByteFreezer MCP 
 
 ## How It Works
 
-Claude Code runs on **your workstation**. It connects to the ByteFreezer control plane via MCP for account/tenant/dataset management, and uses SSH to deploy services on remote hosts. For Kubernetes deployments, Claude uses `kubectl`/`helm` directly from your workstation (no SSH needed).
+Claude Code runs on **your workstation**. It connects to the ByteFreezer control plane via MCP for tenant/dataset/config management, and uses SSH to deploy services on remote hosts. For Kubernetes deployments, Claude uses `kubectl`/`helm` directly from your workstation (no SSH needed).
 
 ```
 Your Workstation                    Remote
 +------------------+
 | Claude Code      |
 |   |               |
-|   +-- MCP --------|------> api.bytefreezer.com  (account, tenant, dataset, config)
+|   +-- MCP --------|------> api.bytefreezer.com  (tenant, dataset, config generation)
 |   |               |
 |   +-- SSH --------|------> testhost              (docker compose, files, fakedata)
 |   |               |
@@ -131,11 +131,11 @@ flows all the way to parquet.
 **What Claude does behind the scenes:**
 
 1. `bf_create_tenant` and `bf_create_dataset`
-3. `bf_generate_docker_compose` with `scenario=full` — generates docker-compose.yml with all services, .env, and config files for proxy, receiver, piper, packer
-4. SSHs into testhost, writes all files, runs `docker compose up -d`
-5. `bf_account_services` — waits for all four services to register healthy
-6. Assigns dataset to proxy, starts fakedata via SSH
-7. `bf_dataset_statistics` and `bf_dataset_parquet_files` — verifies parquet output
+2. `bf_generate_docker_compose` with `scenario=full` — generates docker-compose.yml with all services, .env, and config files for proxy, receiver, piper, packer
+3. SSHs into testhost, writes all files, runs `docker compose up -d`
+4. `bf_account_services` — waits for all four services to register healthy
+5. Assigns dataset to proxy, starts fakedata via SSH
+6. `bf_dataset_statistics` and `bf_dataset_parquet_files` — verifies parquet output
 
 **Query your data:** Your parquet files are in MinIO on testhost. Use the [example query project](https://github.com/bytefreezer/query-example) or ask Claude:
 
@@ -161,12 +161,12 @@ Then deploy fakedata and verify parquet output.
 **What Claude does behind the scenes:**
 
 1. `bf_create_tenant` and `bf_create_dataset`
-3. `bf_generate_helm_values` with `scenario=full` — generates values.yaml
-4. Writes values.yaml locally, runs `helm install`
-5. Monitors pods with `kubectl get pods`, waits for healthy
-6. `bf_account_services` — verifies all services registered
-7. Deploys fakedata pod, assigns dataset to proxy
-8. Verifies parquet output
+2. `bf_generate_helm_values` with `scenario=full` — generates values.yaml
+3. Writes values.yaml locally, runs `helm install`
+4. Monitors pods with `kubectl get pods`, waits for healthy
+5. `bf_account_services` — verifies all services registered
+6. Deploys fakedata pod, assigns dataset to proxy
+7. Verifies parquet output
 
 **Variant — proxy on a remote host, stack in Kubernetes:**
 
