@@ -26,7 +26,6 @@ Your Workstation                    Remote
 ## What You Need
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed on your workstation
-- A ByteFreezer account and API key — register at [bytefreezer.com](https://bytefreezer.com/register), then generate an API key from your dashboard
 - **For managed / Docker Compose deployments:**
   - A Linux target host ("testhost") with Docker and Docker Compose
   - SSH access from your workstation to testhost (key-based, no password prompts)
@@ -34,7 +33,23 @@ Your Workstation                    Remote
   - `kubectl` and Helm 3 configured on your workstation
   - A running Kubernetes cluster
 
-## Setting Up SSH Access
+---
+
+## Step 1: Create a ByteFreezer Account
+
+1. Go to [bytefreezer.com/register](https://bytefreezer.com/register)
+2. Create your account with your email and password
+3. Log in to the dashboard
+
+## Step 2: Generate an API Key
+
+1. In the dashboard, go to **Settings** → **API Keys**
+2. Click **Generate Key**
+3. Copy the API key — you will need it in the next step. It is shown only once.
+
+## Step 3: Set Up SSH Access
+
+Skip this step if you are only deploying to Kubernetes.
 
 Claude will SSH into your target host to write config files and run Docker commands. Set up key-based SSH so Claude can connect without password prompts:
 
@@ -51,9 +66,7 @@ ssh testhost "hostname && docker --version"
 
 Replace `testhost` with your host's IP or hostname. Claude will use this same SSH target in its commands.
 
----
-
-## Step 1: Connect Claude to ByteFreezer MCP
+## Step 4: Connect Claude to ByteFreezer MCP
 
 Run this once to register the MCP server with Claude Code:
 
@@ -63,7 +76,7 @@ claude mcp add --transport http bytefreezer \
   --header "Authorization: Bearer YOUR_API_KEY"
 ```
 
-Replace `YOUR_API_KEY` with your API key from bytefreezer.com.
+Replace `YOUR_API_KEY` with the API key from Step 2.
 
 **Verify:**
 
@@ -73,9 +86,36 @@ claude mcp list
 
 You should see `bytefreezer` in the list.
 
+## Step 5: Verify MCP Connection
+
+Start Claude Code and run a quick smoke test to confirm the MCP server is reachable and your API key works:
+
+```
+Check the ByteFreezer health, list all accounts, and show the health summary.
+```
+
+**What Claude does:**
+
+1. `bf_health_check` — confirms the control API is reachable, returns service version and uptime
+2. `bf_health_summary` — shows healthy/unhealthy service counts
+3. `bf_list_accounts` — lists accounts visible to your API key (account keys see only their own account; system admin keys see all)
+
+**Expected output:**
+
+| Check | Expected |
+|-------|----------|
+| Health check | `status: ok`, `service: bytefreezer-control` |
+| Health summary | Service counts for control, receiver, piper, packer |
+| Accounts | Your account (and system account if system admin key) |
+
+If any of these fail:
+- **"MCP server not responding"** — check `claude mcp list` shows `bytefreezer`
+- **"Unauthorized"** — your API key is wrong or expired; generate a new one in the dashboard
+- **Empty account list** — your API key may not be associated with an account
+
 ---
 
-## Step 2: Tell Claude What You Want
+## Step 6: Tell Claude What You Want
 
 Start Claude Code and describe your deployment. Include the target host so Claude knows where to deploy. Below are example prompts for each path.
 
@@ -105,13 +145,50 @@ to the proxy and send some test data with fakedata to verify the pipeline works.
 7. `bf_dataset_statistics` — verifies events are flowing
 8. Reports back what happened
 
-**Verify:** Ask Claude:
+**Verify the pipeline — ask Claude step by step:**
 
 ```
 Check my deployment health and show me the dataset statistics.
 ```
 
-Claude uses `bf_health_status`, `bf_dataset_statistics`, and `bf_dataset_parquet_files` to give you a full status report.
+Claude uses `bf_health_status`, `bf_dataset_statistics`, and `bf_dataset_parquet_files` to show:
+
+| Check | What Claude does |
+|-------|-----------------|
+| Service health | `bf_health_summary` + `bf_account_services` — all services healthy |
+| Dataset stats | `bf_dataset_statistics` — events received count increasing |
+| Parquet files | `bf_dataset_parquet_files` — `.parquet` files exist in output bucket |
+
+Then explore transformations:
+
+```
+Show me the schema of my syslog-test dataset, then add a transformation
+to rename source_ip to src and add a field environment="test".
+Test it first, then activate it.
+```
+
+Claude runs:
+1. `bf_transformation_schema` — shows discovered field names and types
+2. `bf_test_transformation` — dry-run against sample data, shows before/after
+3. `bf_activate_transformation` — deploys the config (piper picks it up within 5 minutes)
+
+After new data flows through, verify:
+
+```
+Show me the dataset statistics and query the latest parquet files
+to confirm the transformation is applied.
+```
+
+**Verify:** New events have `src` instead of `source_ip`, and include `environment: "test"`.
+
+To test the pause/resume kill switch:
+
+```
+Pause my syslog-test dataset, then check proxy config to confirm it stopped.
+After 30 seconds, resume it.
+```
+
+Claude uses `bf_update_dataset` to toggle status, and `bf_get_proxy_config` to confirm the proxy dropped the dataset from its active config.
 
 ---
 
@@ -137,7 +214,39 @@ flows all the way to parquet.
 5. Assigns dataset to proxy, starts fakedata via SSH
 6. `bf_dataset_statistics` and `bf_dataset_parquet_files` — verifies parquet output
 
-**Query your data:** Your parquet files are in MinIO on testhost. Use the [example query project](https://github.com/bytefreezer/query-example) or ask Claude:
+**Verify the full pipeline:**
+
+```
+Check all service health, show dataset statistics, and list parquet files.
+```
+
+Claude verifies:
+
+| Check | What Claude does |
+|-------|-----------------|
+| All services healthy | `bf_account_services` — proxy, receiver, piper, packer all Healthy |
+| Data flowing | `bf_dataset_statistics` — events_in, events_out, bytes_processed increasing |
+| Parquet output | `bf_dataset_parquet_files` — lists `.parquet` files in packer bucket |
+
+Then explore transformations and features:
+
+```
+Show me the schema of my dataset, then create a transformation to
+rename source_ip to src, add a field environment="docker-test",
+and filter out events where action is "heartbeat".
+Test it first, then activate it.
+```
+
+```
+Show me what filters are available in the transformation catalog.
+```
+
+```
+Pause the dataset, wait 30 seconds, then resume it. Show me the proxy
+config before and after to confirm the kill switch works.
+```
+
+**Query your data:** Parquet files are in MinIO on testhost. Use the [example query project](https://github.com/bytefreezer/query-example) or ask Claude:
 
 ```
 Show me how to query the parquet files in my MinIO on testhost.
@@ -176,6 +285,27 @@ instead of inside the cluster. The rest of the stack stays in Kubernetes.
 ```
 
 Claude uses `bf_generate_helm_values` for the cluster stack and `bf_generate_docker_compose` with `scenario=proxy` for the edge proxy, wiring the receiver URL from the Kubernetes LoadBalancer IP. It SSHs into testhost to deploy the proxy.
+
+**Verify the pipeline:**
+
+```
+Check all services are healthy, show dataset statistics, and list parquet files.
+```
+
+Same verification as Path B — Claude checks `bf_account_services`, `bf_dataset_statistics`, and `bf_dataset_parquet_files`.
+
+**Explore transformations:**
+
+```
+Show me the schema, add a transformation to rename source_ip to src
+and add a field cluster="k8s-test". Test first, then activate.
+```
+
+**Test the kill switch:**
+
+```
+Pause the dataset, verify the proxy config dropped it, then resume.
+```
 
 ---
 
