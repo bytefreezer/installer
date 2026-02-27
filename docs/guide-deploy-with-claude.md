@@ -1,8 +1,8 @@
 # How to Deploy ByteFreezer with Claude + MCP
 
-Use Claude Code as your deployment assistant. Connect it to the ByteFreezer MCP server and tell it what you want — Claude handles account creation, config generation, deployment, and verification.
+Use Claude Code as your deployment assistant. Connect it to the ByteFreezer MCP server and tell it what you want — Claude handles tenant creation, dataset configuration, config generation, deployment, and verification.
 
-**Objective:** Instead of following a guide step by step, describe your deployment goal in plain English. Claude uses 63 ByteFreezer MCP tools to create accounts, tenants, datasets, generate deployment configs, and verify everything is working.
+**Objective:** Instead of following a guide step by step, describe your deployment goal in plain English. Claude uses 63 ByteFreezer MCP tools to create tenants, datasets, generate deployment configs, and verify everything is working.
 
 > **Do not send sensitive or production data to bytefreezer.com.** The control plane is a shared test platform. For on-prem deployments your data stays on your infrastructure, but the control plane is not secured for production use.
 
@@ -26,7 +26,7 @@ Your Workstation                    Remote
 ## What You Need
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed on your workstation
-- A ByteFreezer account with an API key (or have Claude create one for you)
+- A ByteFreezer account and API key — register at [bytefreezer.com](https://bytefreezer.com/register), then generate an API key from your dashboard
 - **For managed / Docker Compose deployments:**
   - A Linux target host ("testhost") with Docker and Docker Compose
   - SSH access from your workstation to testhost (key-based, no password prompts)
@@ -88,24 +88,22 @@ Start Claude Code and describe your deployment. Include the target host so Claud
 **Prompt:**
 
 ```
-I want to try ByteFreezer managed. Create an account called "my-test",
-create a tenant "demo" with a syslog dataset on port 5514,
-then generate a docker-compose setup for the proxy and deploy it
-on testhost via SSH. After it's running, assign the dataset to the proxy
-and send some test data with fakedata to verify the pipeline works.
+I want to try ByteFreezer managed. Create a tenant "demo" with a syslog
+dataset on port 5514, then generate a docker-compose setup for the proxy
+and deploy it on testhost via SSH. After it's running, assign the dataset
+to the proxy and send some test data with fakedata to verify the pipeline works.
 ```
 
 **What Claude does behind the scenes:**
 
-1. `bf_create_account` — creates account, saves account ID and API key
-2. `bf_create_tenant` — creates tenant under the account
-3. `bf_create_dataset` — creates syslog dataset with managed S3 output
-4. `bf_generate_docker_compose` with `scenario=proxy` — generates docker-compose.yml, .env, and proxy config
-5. SSHs into testhost, writes the files, runs `docker compose up -d`
-6. Waits for the proxy to register, then `bf_update_dataset_proxy_assignment`
-7. SSHs into testhost, runs fakedata container to generate test syslog
-8. `bf_dataset_statistics` — verifies events are flowing
-9. Reports back what happened
+1. `bf_create_tenant` — creates tenant under your account
+2. `bf_create_dataset` — creates syslog dataset with managed S3 output
+3. `bf_generate_docker_compose` with `scenario=proxy` — generates docker-compose.yml, .env, and proxy config
+4. SSHs into testhost, writes the files, runs `docker compose up -d`
+5. Waits for the proxy to register, then `bf_update_dataset_proxy_assignment`
+6. SSHs into testhost, runs fakedata container to generate test syslog
+7. `bf_dataset_statistics` — verifies events are flowing
+8. Reports back what happened
 
 **Verify:** Ask Claude:
 
@@ -125,16 +123,14 @@ Claude uses `bf_health_status`, `bf_dataset_statistics`, and `bf_dataset_parquet
 
 ```
 Deploy a full on-prem ByteFreezer stack with Docker Compose on testhost via SSH.
-Create an on_prem account called "my-onprem", a tenant "demo",
-and a syslog dataset on port 5514. Include MinIO for storage.
-After everything is running, start fakedata and verify data flows
-all the way to parquet.
+Create a tenant "demo" and a syslog dataset on port 5514. Include MinIO
+for storage. After everything is running, start fakedata and verify data
+flows all the way to parquet.
 ```
 
 **What Claude does behind the scenes:**
 
-1. `bf_create_account` with `type=on_prem`
-2. `bf_create_tenant` and `bf_create_dataset`
+1. `bf_create_tenant` and `bf_create_dataset`
 3. `bf_generate_docker_compose` with `scenario=full` — generates docker-compose.yml with all services, .env, and config files for proxy, receiver, piper, packer
 4. SSHs into testhost, writes all files, runs `docker compose up -d`
 5. `bf_account_services` — waits for all four services to register healthy
@@ -157,16 +153,14 @@ Show me how to query the parquet files in my MinIO on testhost.
 
 ```
 Deploy ByteFreezer to my Kubernetes cluster with Helm.
-Create an on_prem account called "my-k8s", a tenant "demo",
-and a syslog dataset on port 5514. Use bundled MinIO.
+Create a tenant "demo" and a syslog dataset on port 5514. Use bundled MinIO.
 Generate the Helm values and install the chart.
 Then deploy fakedata and verify parquet output.
 ```
 
 **What Claude does behind the scenes:**
 
-1. `bf_create_account` with `type=on_prem`
-2. `bf_create_tenant` and `bf_create_dataset`
+1. `bf_create_tenant` and `bf_create_dataset`
 3. `bf_generate_helm_values` with `scenario=full` — generates values.yaml
 4. Writes values.yaml locally, runs `helm install`
 5. Monitors pods with `kubectl get pods`, waits for healthy
