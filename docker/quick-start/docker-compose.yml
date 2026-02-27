@@ -23,7 +23,7 @@ services:
     volumes:
       - minio-data:/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "mc", "ready", "local"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -70,7 +70,7 @@ services:
       CONTROL_URL: ${CONTROL_URL:-https://api.bytefreezer.com}
       ACCOUNT_ID: ${ACCOUNT_ID:-}
     volumes:
-      - ./config/receiver.yaml:/etc/bytefreezer/config.yaml:ro
+      - ./config/receiver.yaml:/etc/bytefreezer-receiver/config.yaml:ro
       - receiver-spool:/var/spool/bytefreezer-receiver
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081/api/v1/health"]
@@ -101,7 +101,7 @@ services:
       CONTROL_URL: ${CONTROL_URL:-https://api.bytefreezer.com}
       ACCOUNT_ID: ${ACCOUNT_ID:-}
     volumes:
-      - ./config/piper.yaml:/etc/bytefreezer/config.yaml:ro
+      - ./config/piper.yaml:/etc/bytefreezer-piper/config.yaml:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8082/api/v1/health"]
       interval: 30s
@@ -127,7 +127,7 @@ services:
       CONTROL_URL: ${CONTROL_URL:-https://api.bytefreezer.com}
       ACCOUNT_ID: ${ACCOUNT_ID:-}
     volumes:
-      - ./config/packer.yaml:/etc/bytefreezer/config.yaml:ro
+      - ./config/packer.yaml:/etc/bytefreezer-packer/config.yaml:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8083/api/v1/health"]
       interval: 30s
@@ -147,12 +147,13 @@ services:
     ports:
       - "8008:8008"
       - "5514:5514/udp"
+    command: ["--config", "/etc/bytefreezer-proxy/config.yaml"]
     environment:
       PROXY_CONTROL_SERVICE_API_KEY: ${CONTROL_API_KEY:-}
       CONTROL_URL: ${CONTROL_URL:-https://api.bytefreezer.com}
       ACCOUNT_ID: ${ACCOUNT_ID:-}
     volumes:
-      - ./config/proxy.yaml:/etc/bytefreezer/config.yaml:ro
+      - ./config/proxy.yaml:/etc/bytefreezer-proxy/config.yaml:ro
       - proxy-spool:/var/spool/bytefreezer-proxy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8008/api/v1/health"]
