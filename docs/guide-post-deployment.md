@@ -93,6 +93,8 @@ Go to **Datasets** → your dataset → **Pipeline** tab.
 
 Transformations modify data as it flows through piper. Changes apply to new data only — existing parquet files are not reprocessed.
 
+You can build transformations manually using the JSON examples below, or use the **Agent** tab next to the Pipeline tab. The AI agent knows your dataset schema, available filters, and current pipeline config — describe what you want in plain English and it will generate the transformation JSON for you. For example: "drop all events where action is deny and rename source_ip to src".
+
 Examples to try:
 
 **Rename a field:**
