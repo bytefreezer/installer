@@ -3,6 +3,8 @@
 Deploy a single proxy on your host and use the managed platform for everything else.
 All processing and storage runs on bytefreezer.com — you only install the proxy.
 
+> **Prefer AI-assisted deployment?** See [Deploy with Claude + MCP](guide-deploy-with-claude.md#path-a-managed-proxy-only) — describe what you want in plain English and Claude handles the rest.
+
 **Objective:** End-to-end test on the managed test platform. Verify your proxy is working, data flows through the pipeline, and you can see and query parquet files directly on bytefreezer.com.
 
 **Time to complete:** 10-15 minutes.

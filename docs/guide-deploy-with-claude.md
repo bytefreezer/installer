@@ -125,6 +125,8 @@ Start Claude Code and describe your deployment. Include the target host so Claud
 
 **What this does:** Deploys a single proxy on a remote host. Processing and storage run on bytefreezer.com. This is a proxy test — verify your proxy works and query parquet on the test platform.
 
+> **Prefer step-by-step manual instructions?** See [Managed Quickstart Guide](guide-managed-quickstart.md).
+
 **Prompt:**
 
 ```
@@ -196,6 +198,8 @@ Claude uses `bf_update_dataset` to toggle status, and `bf_get_proxy_config` to c
 
 **What this does:** Deploys the complete stack (proxy, receiver, piper, packer, MinIO) on a remote host via SSH. Your data stays on that host. Control plane on bytefreezer.com for coordination.
 
+> **Prefer step-by-step manual instructions?** See [On-Prem Docker Compose Guide](guide-onprem-docker-compose.md).
+
 **Prompt:**
 
 ```
@@ -257,6 +261,8 @@ Show me how to query the parquet files in my MinIO on testhost.
 ### Path C: On-Prem Kubernetes (Helm)
 
 **What this does:** Deploys the full stack to a Kubernetes cluster using Helm. Your data stays in your cluster. No SSH needed — Claude uses `kubectl` and `helm` directly from your workstation.
+
+> **Prefer step-by-step manual instructions?** See [On-Prem Kubernetes Guide](guide-onprem-kubernetes.md).
 
 **Prompt:**
 

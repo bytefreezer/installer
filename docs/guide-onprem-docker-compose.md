@@ -3,6 +3,8 @@
 Deploy the complete ByteFreezer processing stack on a single host.
 Control plane runs on bytefreezer.com. Processing, storage, and proxy are all self-hosted.
 
+> **Prefer AI-assisted deployment?** See [Deploy with Claude + MCP](guide-deploy-with-claude.md#path-b-on-prem-docker-compose-full-stack) — describe what you want in plain English and Claude handles the rest.
+
 **Objective:** End-to-end test of the full on-prem stack. Verify all services register, data flows from proxy through receiver/piper/packer, and parquet files land in your local MinIO. To query your parquet data, use the [example query project](https://github.com/bytefreezer/query-example) or build your own using AI and [ByteFreezer MCP](https://github.com/bytefreezer/mcp).
 
 > **Do not send sensitive or production data to bytefreezer.com.** The control plane on bytefreezer.com is a shared test platform. Your data stays on your host, but the control plane is not secured for production use.
