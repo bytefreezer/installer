@@ -3,7 +3,7 @@
 Deploy the complete ByteFreezer processing stack to a Kubernetes cluster using Helm charts.
 Control plane runs on bytefreezer.com. Processing, storage, and proxy are self-hosted in your cluster.
 
-> **Prefer AI-assisted deployment?** See [Deploy with Claude + MCP](guide-deploy-with-claude.md#path-c-on-prem-kubernetes-helm) — describe what you want in plain English and Claude handles the rest.
+> **Prefer AI-assisted deployment?** See [Deploy On-Prem K8s with Claude + MCP](guide-deploy-with-claude-k8s.md) — describe what you want in plain English and Claude handles the rest.
 
 **Objective:** End-to-end test of the full on-prem stack on Kubernetes. Verify all services register, data flows from proxy through receiver/piper/packer, and parquet files land in your cluster's MinIO. To query your parquet data, use the [example query project](https://github.com/bytefreezer/query-example) or build your own using AI and [ByteFreezer MCP](https://github.com/bytefreezer/mcp).
 
