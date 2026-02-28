@@ -234,7 +234,7 @@ The control plane (bytefreezer.com) only handles configuration, health monitorin
 
 ## Next Steps
 
-- **Want to deploy on-prem?** See [On-Prem with Docker Compose](guide-onprem-docker-compose.md) or [On-Prem with Kubernetes](guide-onprem-kubernetes.md)
+- **Try managed first?** See [Managed Deployment](guide-managed.md) (proxy only, fastest to set up)
+- **Want to deploy on-prem?** See [On-Prem Docker Compose](guide-onprem-docker.md) or [On-Prem Kubernetes](guide-onprem-k8s.md)
 - **Want to build the final mile?** Check the [example query project](https://github.com/bytefreezer/query-example) for connecting parquet to your SIEM
-- **Want to automate deployments?** See [Deploy with Claude](guide-deploy-with-claude.md) for AI-assisted setup using MCP
 - **Questions?** Contact us at https://bytefreezer.com/contact

@@ -1,15 +1,18 @@
-# How to Deploy ByteFreezer On-Prem with Kubernetes (Helm)
+# ByteFreezer On-Prem Deployment (Kubernetes)
 
-Deploy the complete ByteFreezer processing stack to a Kubernetes cluster using Helm charts.
-Control plane runs on bytefreezer.com. Processing, storage, and proxy are self-hosted in your cluster.
-
-> **Prefer AI-assisted deployment?** See [Deploy On-Prem K8s with Claude + MCP](guide-deploy-with-claude-k8s.md) — describe what you want in plain English and Claude handles the rest.
+Deploy the complete ByteFreezer processing stack to a Kubernetes cluster using Helm charts. Control plane runs on bytefreezer.com for coordination. Processing, storage, and proxy are self-hosted in your cluster -- your data stays on your infrastructure.
 
 **Objective:** End-to-end test of the full on-prem stack on Kubernetes. Verify all services register, data flows from proxy through receiver/piper/packer, and parquet files land in your cluster's MinIO. To query your parquet data, use the [example query project](https://github.com/bytefreezer/query-example) or build your own using AI and [ByteFreezer MCP](https://github.com/bytefreezer/mcp).
 
+**Time to complete:** 20-30 minutes (manual), 10-15 minutes (Claude + MCP).
+
 > **Do not send sensitive or production data to bytefreezer.com.** The control plane on bytefreezer.com is a shared test platform. Your data stays in your cluster, but the control plane is not secured for production use.
 
+---
+
 ## What You Need
+
+**Both methods:**
 
 - A Kubernetes cluster (k3s, k8s, EKS, AKS, GKE, etc.)
 - `kubectl` configured and pointing to your cluster
@@ -17,7 +20,14 @@ Control plane runs on bytefreezer.com. Processing, storage, and proxy are self-h
 - Network access from cluster to api.bytefreezer.com on HTTPS (control API)
 - MetalLB installed (for LoadBalancer services on bare-metal/k3s)
 - A web browser
-- (Sub-version B only) A Linux host for edge proxy ("testhost")
+- (Version B only) A Linux host with Docker for edge proxy ("testhost")
+
+**Additional for Method B (Claude + MCP):**
+
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed on your workstation
+- SSH access from your workstation to testhost (for edge proxy variant only)
+
+---
 
 ## Architecture
 
@@ -66,9 +76,20 @@ testhost                           Kubernetes Cluster
 
 ---
 
+## Choose Your Deployment Method
+
+- **[Method A: Step-by-Step Manual](#method-a-step-by-step-manual)** -- Follow the instructions yourself using the dashboard, kubectl, and helm.
+- **[Method B: Deploy with Claude + MCP](#method-b-deploy-with-claude--mcp)** -- Tell Claude what you want in plain English; it handles the API calls, Helm values generation, and deployment.
+
+---
+
+# Method A: Step-by-Step Manual
+
+Follow each step yourself using the bytefreezer.com dashboard, kubectl, and helm.
+
 ## Phase 1: Create Account on bytefreezer.com
 
-### Step 1 — Log in and create account
+### Step 1 -- Log in and create account
 
 Open https://bytefreezer.com. Log in as system administrator.
 
@@ -84,11 +105,9 @@ Copy the **Account ID** and **API Key** (shown only once).
 
 **Verify:** Account appears in the Accounts list.
 
----
-
 ## Phase 2: Deploy Processing Stack
 
-### Step 2 — Get the Helm charts
+### Step 2 -- Get the Helm charts
 
 ```bash
 # Clone the installer repo
@@ -96,13 +115,13 @@ git clone https://github.com/bytefreezer/installer.git
 cd installer/helm
 ```
 
-### Step 3 — Create namespace
+### Step 3 -- Create namespace
 
 ```bash
 kubectl create namespace bytefreezer
 ```
 
-### Step 4 — Create values file for processing stack
+### Step 4 -- Create values file for processing stack
 
 Create `stack-values.yaml`:
 
@@ -167,7 +186,7 @@ packer:
 
 Replace `YOUR_API_KEY_HERE` with the key from Step 1.
 
-### Step 5 — Install processing stack
+### Step 5 -- Install processing stack
 
 ```bash
 helm install bytefreezer ./bytefreezer \
@@ -175,7 +194,7 @@ helm install bytefreezer ./bytefreezer \
   -f stack-values.yaml
 ```
 
-### Step 6 — Verify pods are running
+### Step 6 -- Verify pods are running
 
 ```bash
 kubectl get pods -n bytefreezer
@@ -199,13 +218,13 @@ kubectl logs -n bytefreezer -l app.kubernetes.io/component=packer --tail 20
 
 **Verify:** Each service logs "Registered with control service" or "Health report sent successfully".
 
-### Step 7 — Get receiver webhook URL
+### Step 7 -- Get receiver webhook URL
 
 ```bash
 kubectl get svc -n bytefreezer
 ```
 
-Note the receiver webhook service's external IP or ClusterIP. You'll need this for the proxy.
+Note the receiver webhook service's external IP or ClusterIP. You will need this for the proxy.
 
 For LoadBalancer:
 ```bash
@@ -218,13 +237,13 @@ For ClusterIP (proxy in same cluster):
 echo "Receiver URL: http://bytefreezer-receiver:8080"
 ```
 
-### Step 8 — Verify services on dashboard
+### Step 8 -- Verify services on dashboard
 
 On bytefreezer.com, go to **Service Status**.
 
 **Verify:** receiver, piper, packer appear under `test-onprem-k8s` account with Healthy status.
 
-### Step 9 — Check MinIO
+### Step 9 -- Check MinIO
 
 Port-forward to access MinIO console:
 
@@ -236,11 +255,9 @@ Open http://localhost:9001. Login: `minioadmin` / `minioadmin`.
 
 **Verify:** Buckets exist: `bytefreezer-intake`, `bytefreezer-piper`, `packer`, `bytefreezer-geoip`.
 
----
-
 ## Phase 3A: Deploy Proxy in Kubernetes
 
-### Step 10A — Create proxy values file
+### Step 10A -- Create proxy values file
 
 Create `proxy-values.yaml`:
 
@@ -286,7 +303,7 @@ udp:
       metallb.universe.tf/address-pool: "default"
 ```
 
-### Step 11A — Install proxy
+### Step 11A -- Install proxy
 
 ```bash
 helm install proxy ./proxy \
@@ -294,7 +311,7 @@ helm install proxy ./proxy \
   -f proxy-values.yaml
 ```
 
-### Step 12A — Verify proxy
+### Step 12A -- Verify proxy
 
 ```bash
 kubectl get pods -n bytefreezer -l app.kubernetes.io/name=proxy
@@ -321,13 +338,11 @@ echo "Proxy IP: ${PROXY_IP}"
 
 Skip to **Phase 4**.
 
----
-
-## Phase 3B: Deploy Proxy on Testhost (Sub-version)
+## Phase 3B: Deploy Proxy on Testhost (Edge Proxy)
 
 Use this if you want the proxy running outside the cluster (edge deployment pattern).
 
-### Step 10B — Get receiver external URL
+### Step 10B -- Get receiver external URL
 
 The receiver needs to be accessible from testhost. If you used LoadBalancer:
 
@@ -344,7 +359,7 @@ curl -s http://${RECEIVER_IP}:8080
 # Should get a response (even if error, confirms network path)
 ```
 
-### Step 11B — Deploy proxy on testhost via Docker
+### Step 11B -- Deploy proxy on testhost via Docker
 
 SSH to testhost:
 
@@ -371,7 +386,7 @@ services:
       - ./config/proxy.yaml:/etc/bytefreezer/config.yaml:ro
       - proxy-spool:/var/spool/bytefreezer-proxy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8008/api/v1/health"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8008/api/v1/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -390,7 +405,7 @@ CONTROL_API_KEY=YOUR_API_KEY_HERE
 EOF
 ```
 
-Create `config/proxy.yaml` (replace `RECEIVER_URL` with the LoadBalancer IP from Step 10B):
+Create `config/proxy.yaml` (replace `RECEIVER_IP` with the LoadBalancer IP from Step 10B):
 
 ```bash
 cat > config/proxy.yaml << 'EOF'
@@ -450,11 +465,9 @@ docker compose logs proxy | head -20
 
 `PROXY_IP` for fakedata = testhost's IP address.
 
----
-
 ## Phase 4: Configure Dataset
 
-### Step 13 — Create tenant
+### Step 13 -- Create tenant
 
 On bytefreezer.com, navigate to **Tenants** (under `test-onprem-k8s` account):
 
@@ -462,7 +475,7 @@ On bytefreezer.com, navigate to **Tenants** (under `test-onprem-k8s` account):
 |-------|-------|
 | Name | `demo` |
 
-### Step 14 — Create dataset
+### Step 14 -- Create dataset
 
 Navigate to **Datasets** (under `demo` tenant):
 
@@ -481,7 +494,7 @@ Configure:
   - SSL: off
   - Region: `us-east-1`
 
-### Step 15 — Assign to proxy
+### Step 15 -- Assign to proxy
 
 Edit the dataset. Set **Assigned Proxy** to the proxy instance.
 
@@ -489,11 +502,9 @@ Edit the dataset. Set **Assigned Proxy** to the proxy instance.
 
 Wait 1-2 minutes for config sync.
 
----
-
 ## Phase 5: Generate Test Data and Verify
 
-### Step 16 — Run fakedata
+### Step 16 -- Run fakedata
 
 **If proxy is in Kubernetes (Version A):**
 
@@ -535,7 +546,7 @@ docker run --rm --network host \
   syslog --host 127.0.0.1 --port 5514 --rate 10
 ```
 
-### Step 17 — Verify proxy receives data
+### Step 17 -- Verify proxy receives data
 
 ```bash
 # Version A (k8s)
@@ -547,7 +558,7 @@ docker compose logs proxy --tail 20
 
 **Verify:** Logs show batch activity, forwarding to receiver.
 
-### Step 18 — Verify receiver stores to S3
+### Step 18 -- Verify receiver stores to S3
 
 ```bash
 kubectl logs -n bytefreezer -l app.kubernetes.io/component=receiver --tail 20
@@ -559,9 +570,9 @@ kubectl logs -n bytefreezer -l app.kubernetes.io/component=receiver --tail 20
 kubectl port-forward -n bytefreezer svc/bytefreezer-minio 9001:9001
 ```
 
-Open http://localhost:9001 → `bytefreezer-intake` bucket. Files appear with `.jsonl.snappy` extension.
+Open http://localhost:9001 -> `bytefreezer-intake` bucket. Files appear with `.jsonl.snappy` extension.
 
-### Step 19 — Verify piper processes
+### Step 19 -- Verify piper processes
 
 ```bash
 kubectl logs -n bytefreezer -l app.kubernetes.io/component=piper --tail 20
@@ -569,7 +580,7 @@ kubectl logs -n bytefreezer -l app.kubernetes.io/component=piper --tail 20
 
 **Verify:** `bytefreezer-piper` bucket in MinIO has `.jsonl` files.
 
-### Step 20 — Verify packer produces parquet
+### Step 20 -- Verify packer produces parquet
 
 ```bash
 kubectl logs -n bytefreezer -l app.kubernetes.io/component=packer --tail 20
@@ -577,7 +588,7 @@ kubectl logs -n bytefreezer -l app.kubernetes.io/component=packer --tail 20
 
 **Verify:** `packer` bucket in MinIO has `.parquet` files.
 
-### Step 21 — Check bytefreezer.com dashboard
+### Step 21 -- Check bytefreezer.com dashboard
 
 **Statistics page:**
 - Events flowing through all stages
@@ -596,23 +607,21 @@ kubectl logs -n bytefreezer -l app.kubernetes.io/component=packer --tail 20
 
 **Verify:** Data visible end-to-end from fakedata to parquet query results.
 
----
-
 ## Phase 6: Explore Features
 
-### Step 22 — Add transformations
+### Step 22 -- Add transformations
 
-Go to **Datasets** → `syslog-test` → **Pipeline** tab.
+Go to **Datasets** -> `syslog-test` -> **Pipeline** tab.
 
 Add:
-- **Rename:** `source_ip` → `src`
+- **Rename:** `source_ip` -> `src`
 - **Add field:** `cluster` = `"k8s-test"`
 
 Save. Wait for piper config refresh (up to 5 minutes).
 
 **Verify:** New events in query have `src` and `cluster` fields.
 
-### Step 23 — Test dataset pause
+### Step 23 -- Test dataset pause
 
 Pause the dataset on bytefreezer.com.
 
@@ -622,7 +631,7 @@ Pause the dataset on bytefreezer.com.
 
 Resume. **Verify:** Data flow resumes.
 
-### Step 24 — Verify parquet output with transformations
+### Step 24 -- Verify parquet output with transformations
 
 After packer cycle completes:
 
@@ -630,25 +639,200 @@ After packer cycle completes:
 
 ---
 
-## Deployment Complete
+# Method B: Deploy with Claude + MCP
 
-Your on-prem stack is running in Kubernetes and producing parquet data. See **[What Happens After Deployment](guide-post-deployment.md)** to understand:
-- What you're looking at on the dashboard
+Tell Claude what you want in plain English. Claude uses the ByteFreezer MCP tools to create resources on bytefreezer.com, generates Helm values, and runs kubectl/helm from your workstation to deploy to your cluster. No SSH needed for the in-cluster deployment; SSH is used only for the edge proxy variant.
+
+## Claude + MCP Setup
+
+### B1 -- Create a ByteFreezer Account
+
+1. Go to [bytefreezer.com/register](https://bytefreezer.com/register)
+2. Create your account with your email and password
+3. Log in to the dashboard
+
+### B2 -- Generate an API Key
+
+1. In the dashboard, go to **Settings** -> **API Keys**
+2. Click **Generate Key**
+3. Copy the API key -- you will need it in the next step. It is shown only once.
+
+### B3 -- Verify Cluster Access
+
+Make sure `kubectl` and `helm` work from your workstation:
+
+```bash
+kubectl cluster-info
+helm version
+```
+
+If you plan to deploy the proxy on a separate host (edge proxy variant), also set up SSH:
+
+```bash
+ssh-copy-id testhost
+ssh testhost "hostname && docker --version"
+```
+
+### B4 -- Connect Claude to ByteFreezer MCP
+
+Run this once to register the MCP server with Claude Code:
+
+```bash
+claude mcp add --transport http bytefreezer \
+  https://mcp.bytefreezer.com/mcp \
+  --header "Authorization: Bearer YOUR_API_KEY"
+```
+
+Replace `YOUR_API_KEY` with the API key from Step B2.
+
+**Verify:**
+
+```bash
+claude mcp list
+```
+
+You should see `bytefreezer` in the list.
+
+### B5 -- Verify MCP Connection
+
+Start Claude Code and run a quick smoke test to confirm the MCP server is reachable and your API key works:
+
+```
+Check the ByteFreezer health, list all accounts, and show the health summary.
+```
+
+**Expected output:**
+
+| Check | Expected |
+|-------|----------|
+| Health check | `status: ok`, `service: bytefreezer-control` |
+| Health summary | Service counts for control, receiver, piper, packer |
+| Accounts | Your account listed |
+
+If any of these fail:
+- **"MCP server not responding"** -- check `claude mcp list` shows `bytefreezer`
+- **"Unauthorized"** -- your API key is wrong or expired; generate a new one in the dashboard
+- **Empty account list** -- your API key may not be associated with an account
+
+## Deploy with Claude
+
+```
+Your Workstation                    Remote
++------------------+
+| Claude Code      |
+|   |               |
+|   +-- MCP --------|------> api.bytefreezer.com  (tenant, dataset, config)
+|   |               |
+|   +-- kubectl ----|------> k8s cluster           (helm install, pods, services)
+|   |               |
+|   +-- SSH --------|------> testhost              (edge proxy variant only)
++------------------+
+```
+
+### Option A: Everything in Kubernetes
+
+Tell Claude what you want:
+
+```
+Deploy ByteFreezer to my Kubernetes cluster with Helm.
+Create a tenant "demo" and a syslog dataset on port 5514. Use bundled MinIO.
+Generate the Helm values and install the chart.
+Then deploy fakedata and verify parquet output.
+```
+
+**What Claude does behind the scenes:**
+
+1. `bf_create_tenant` and `bf_create_dataset`
+2. `bf_generate_helm_values` with `scenario=full` -- generates values.yaml
+3. Writes values.yaml locally, runs `helm install`
+4. Monitors pods with `kubectl get pods`, waits for healthy
+5. `bf_account_services` -- verifies all services registered
+6. Deploys fakedata pod, assigns dataset to proxy
+7. Verifies parquet output
+
+### Option B: Proxy on Edge Host, Stack in Kubernetes
+
+```
+Deploy the ByteFreezer processing stack (receiver, piper, packer, minio)
+to my Kubernetes cluster with Helm. Deploy the proxy separately on testhost
+via SSH with Docker Compose. Create a tenant "demo" and a syslog dataset
+on port 5514. Wire the proxy to send data to the receiver in Kubernetes.
+Start fakedata on testhost and verify parquet output.
+```
+
+Claude uses `bf_generate_helm_values` for the cluster stack and `bf_generate_docker_compose` with `scenario=proxy` for the edge proxy, wiring the receiver URL from the Kubernetes LoadBalancer IP. It SSHs into testhost to deploy the proxy.
+
+## Verify with Claude
+
+Ask Claude to check the pipeline:
+
+```
+Check all services are healthy, show dataset statistics, and list parquet files.
+```
+
+| Check | What Claude does |
+|-------|-----------------|
+| All services healthy | `bf_account_services` -- proxy, receiver, piper, packer all Healthy |
+| Data flowing | `bf_dataset_statistics` -- events_in, events_out, bytes_processed increasing |
+| Parquet output | `bf_dataset_parquet_files` -- lists `.parquet` files in packer bucket |
+
+## Explore with Claude
+
+### Transformations
+
+```
+Show me the schema, add a transformation to rename source_ip to src
+and add a field cluster="k8s-test". Test first, then activate.
+```
+
+### Kill Switch
+
+```
+Pause the dataset, verify the proxy config dropped it, then resume.
+```
+
+### Query Your Data
+
+Parquet files are in MinIO inside your cluster. Use the [example query project](https://github.com/bytefreezer/query-example) or ask Claude:
+
+```
+Show me how to query the parquet files in my Kubernetes MinIO.
+```
+
+### What Else Can Claude Do?
+
+| Ask Claude to... | Tools it uses |
+|---|---|
+| "Add a transformation to rename source_ip to src" | `bf_activate_transformation` |
+| "Show me the schema of my dataset" | `bf_transformation_schema` |
+| "Test this transformation config before deploying" | `bf_test_transformation` |
+| "Check which services are healthy" | `bf_health_status`, `bf_health_summary` |
+| "List my parquet files" | `bf_dataset_parquet_files` |
+| "Pause the dataset" | `bf_update_dataset` |
+| "Show me what filters are available" | `bf_filter_catalog` |
+| "Generate a systemd install script for bare metal" | `bf_generate_systemd` |
+
+---
+
+## After Deployment
+
+See **[What Happens After Deployment](guide-post-deployment.md)** for details on:
+- What you are looking at on the dashboard
 - How to play with transformations and GeoIP enrichment
 - How data flows through each pipeline stage
 - How to connect parquet output to your SIEM
 
 ---
 
-## Phase 7: Cleanup
+## Cleanup
 
 ### Stop fakedata
 
 ```bash
-# Version A
+# Version A (in-cluster)
 kubectl delete pod fakedata -n bytefreezer
 
-# Version B
+# Version B (testhost)
 # Ctrl+C the docker run command
 ```
 
@@ -686,6 +870,8 @@ On bytefreezer.com, delete the `test-onprem-k8s` account.
 ---
 
 ## Troubleshooting
+
+### Kubernetes Issues
 
 **Pods stuck in Pending:**
 ```bash
@@ -738,4 +924,39 @@ kubectl logs -n bytefreezer -l app.kubernetes.io/component=packer | grep -i "err
 ss -ulnp | grep 5514
 # Verify sysctl settings for UDP buffers
 sysctl net.core.rmem_max
+```
+
+### Claude + MCP Issues
+
+**"MCP server not responding":**
+```bash
+claude mcp list
+# Check bytefreezer is listed
+curl -s https://mcp.bytefreezer.com/health
+# Should return: {"status":"ok","service":"bytefreezer-mcp"}
+```
+
+**"Permission denied" on MCP tools:**
+- Your API key scope determines what Claude can do
+- Account keys: only your account's data
+
+**Claude cannot run kubectl/helm:**
+- Make sure `kubectl` and `helm` are in your PATH on your workstation
+- Verify cluster access: `kubectl cluster-info`
+
+**SSH connection fails (edge proxy variant):**
+```bash
+ssh testhost "echo ok"
+# If prompted for password, run: ssh-copy-id testhost
+```
+
+**Claude cannot run Docker on remote host (edge proxy variant):**
+```bash
+ssh testhost "docker --version && docker compose version"
+# If permission denied: ssh testhost "sudo usermod -aG docker $USER"
+```
+
+**Want to disconnect the MCP server:**
+```bash
+claude mcp remove bytefreezer
 ```
