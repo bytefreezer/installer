@@ -281,6 +281,11 @@ docker compose logs proxy | grep -i "syslog\|plugin\|listening"
 # Should show: syslog plugin started, listening on 0.0.0.0:5514
 ```
 
+> **Deployment is complete.** Your proxy is running and assigned to a dataset. Data will
+> begin flowing within 30 seconds. Continue below to verify the pipeline and explore features,
+> or go directly to [Statistics](https://bytefreezer.com/dashboard/statistics) and
+> [Audit Log](https://bytefreezer.com/dashboard/audit-logs) on the dashboard.
+
 ---
 
 ## Phase 3: Verify the Pipeline
