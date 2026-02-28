@@ -64,7 +64,13 @@ Machine-readable runbook for AI agents deploying a ByteFreezer proxy on the host
 ### 10. `assigned_proxy_id` not `proxy_instance_id`
 - The `bf_update_dataset_proxy_assignment` body field is `{"assigned_proxy_id": "..."}`.
 
-### 11. Docker group requirement
+### 11. Dataset destination needs REAL managed MinIO credentials
+- The packer writes parquet to whatever S3 destination is configured on the dataset.
+- For managed mode, the destination must use the real bytefreezer.com MinIO credentials — not placeholders.
+- Without valid creds, output test shows "degraded" and no parquet files are produced.
+- Get the credentials from the packer config on bytefreezer.com: `ssh bytefreezer.com "grep -A5 s3source /etc/bytefreezer-packer/config.yaml"`
+
+### 12. Docker group requirement
 - Deploy user must be in the `docker` group.
 - Fix: `sudo usermod -aG docker $USER` then re-login.
 
@@ -248,8 +254,8 @@ ssh tiny "cd ~/bytefreezer-proxy && docker compose logs proxy --tail 20"
              "ssl": false,
              "credentials": {
                "type": "static",
-               "access_key": "MANAGED_MINIO_KEY",
-               "secret_key": "MANAGED_MINIO_SECRET"
+               "access_key": "<REAL_MANAGED_MINIO_KEY>",
+               "secret_key": "<REAL_MANAGED_MINIO_SECRET>"
              }
            }
          }
