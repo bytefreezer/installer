@@ -330,7 +330,27 @@ Check parquet files:
 | `bytefreezer-piper` | `.ndjson` files | Piper processed data |
 | `packer` | `.parquet` files | Packer produced final output |
 
-### Step 15 — Query parquet data
+### Step 15 — Check Service Status and Audit Log
+
+Navigate to **Service Status** page.
+
+**Verify:**
+- Your proxy (`tiny:8008` or similar) shows as **Healthy** under your account
+- Shared managed services (control, receiver, piper, packer) all show Healthy
+- The proxy shows its version, uptime, CPU/memory metrics, and last-seen timestamp
+
+Navigate to **Audit Log** page.
+
+**Verify:**
+- Entries for account creation, API key generation, tenant creation, dataset creation
+- Entry for dataset proxy assignment
+- Entry for proxy service registration
+- Each entry shows who performed the action and when
+
+> Every API and dashboard action is recorded in the audit log — configuration changes,
+> service registrations, key management. This provides a full trail of what happened and when.
+
+### Step 16 — Query parquet data
 
 Navigate to **Query** page on bytefreezer.com.
 
@@ -343,7 +363,7 @@ Select the dataset and run a query. You should see the fake syslog events with f
 
 ## Phase 4: Explore Features
 
-### Step 16 — Add a transformation
+### Step 17 — Add a transformation
 
 Go to **Datasets** → `syslog-test` → **Pipeline** tab.
 
@@ -356,7 +376,7 @@ Save. Wait for piper to pick up the new config (up to 5 minutes).
 
 **Verify:** Run a query. New events should have the renamed/added fields. Old events remain unchanged.
 
-### Step 17 — Enable GeoIP enrichment (if GeoIP database available)
+### Step 18 — Enable GeoIP enrichment (if GeoIP database available)
 
 Go to **Datasets** → `syslog-test` → **Pipeline** tab.
 
@@ -364,7 +384,7 @@ Enable GeoIP enrichment on the `source_ip` field.
 
 **Verify:** New events include `source_ip_geo_country`, `source_ip_geo_city`, etc.
 
-### Step 18 — Disable testing mode
+### Step 19 — Disable testing mode
 
 Once you've verified the pipeline works, disable testing mode for production behavior:
 

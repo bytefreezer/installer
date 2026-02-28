@@ -70,6 +70,19 @@ Shows your dataset configuration, assigned proxy, and status. From here you can:
 
 Run SQL queries against your parquet data. Select a dataset and query the fields. Fakedata syslog events include fields like `source_ip`, `dest_ip`, `action`, `username`, `protocol`, `bytes_sent`, etc.
 
+### Audit Log
+
+Every action taken through the API or dashboard is recorded in the audit log. This includes:
+- Account, tenant, and dataset creation/deletion
+- API key generation and revocation
+- Dataset configuration changes (source, destination, transformations)
+- Dataset proxy assignments
+- Service registrations (proxy, receiver, piper, packer connecting to control)
+
+Navigate to **Audit Log** to see the full history. Each entry shows who performed the action (user email or API key), what was changed, and when. This is useful for tracking configuration changes and troubleshooting — if something stopped working, check the audit log to see what changed.
+
+In a production deployment, the audit log provides accountability and compliance evidence for all control plane operations.
+
 ---
 
 ## What You Can Do Next
