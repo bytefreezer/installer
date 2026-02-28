@@ -326,6 +326,12 @@ Once connected to the MCP server, Claude can manage your entire ByteFreezer depl
 
 ---
 
+## After Deployment
+
+Once your pipeline is running and producing parquet files, see **[What Happens After Deployment](guide-post-deployment.md)** to understand what you can do next — transformations, GeoIP, querying, and how the demo differs from production.
+
+---
+
 ## Troubleshooting
 
 **"MCP server not responding":**

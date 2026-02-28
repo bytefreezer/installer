@@ -628,6 +628,16 @@ After packer cycle completes:
 
 ---
 
+## Deployment Complete
+
+Your on-prem stack is running in Kubernetes and producing parquet data. See **[What Happens After Deployment](guide-post-deployment.md)** to understand:
+- What you're looking at on the dashboard
+- How to play with transformations and GeoIP enrichment
+- How data flows through each pipeline stage
+- How to connect parquet output to your SIEM
+
+---
+
 ## Phase 7: Cleanup
 
 ### Stop fakedata

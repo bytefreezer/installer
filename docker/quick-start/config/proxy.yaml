@@ -2,26 +2,24 @@ app:
   name: "bytefreezer-proxy"
   version: "1.0.0"
 
+# These values are populated via environment variables or .env file
+# account_id and bearer_token are required for control service registration
+account_id: ""
+bearer_token: ""
+control_url: "https://api.bytefreezer.com"
+config_mode: "control-only"
+
 server:
   api_port: 8008
 
 receiver:
-  url: "http://receiver:8080"
+  base_url: "http://receiver:8080"
 
-control_service:
+config_polling:
   enabled: true
-  control_url: ""
-  timeout_seconds: 30
-
-udp:
-  enabled: true
-  ports:
-    - port: 5514
-      name: syslog
-
-webhook:
-  enabled: false
-  port: 8080
+  interval_seconds: 30
+  timeout_seconds: 10
+  retry_on_error: true
 
 batching:
   enabled: true
@@ -44,10 +42,5 @@ health_reporting:
   timeout_seconds: 10
   register_on_startup: true
 
-monitoring:
-  enabled: false
-  mode: "prometheus"
-  push_interval_seconds: 15
-  metrics_host: "0.0.0.0"
-  metrics_port: 9090
-  service_name: "bytefreezer-proxy"
+error_tracking:
+  enabled: true

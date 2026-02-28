@@ -5,6 +5,8 @@ All processing and storage runs on bytefreezer.com — you only install the prox
 
 **Objective:** End-to-end test on the managed test platform. Verify your proxy is working, data flows through the pipeline, and you can see and query parquet files directly on bytefreezer.com.
 
+**Time to complete:** 10-15 minutes.
+
 > **Do not send sensitive or production data.** This is a shared test platform and is not secured for production use. Use fakedata or non-sensitive test logs only.
 
 ## What You Need
@@ -44,11 +46,14 @@ Navigate to **Accounts** and create a new account:
 | Email | your email |
 | Deployment Type | `managed` |
 
-Note the **Account ID** from the response. Copy the **API Key** — it is shown only once.
+Note the **Account ID** from the response.
 
-**Verify:** The account appears in the Accounts list.
+### Step 3 — Generate an API key
 
-### Step 3 — Create a tenant
+Navigate to **API Keys** for the new account and generate one.
+Copy the **API Key** — it is shown only once. You will use this in the proxy config.
+
+### Step 4 — Create a tenant
 
 Navigate to **Tenants** (under the new account) and create:
 
@@ -58,78 +63,85 @@ Navigate to **Tenants** (under the new account) and create:
 
 Note the **Tenant ID**.
 
-**Verify:** Tenant appears in the Tenants list.
+### Step 5 — Create a dataset
 
-### Step 4 — Create a dataset
-
-Navigate to **Datasets** (under the new tenant) and create:
+Navigate to **Datasets** (under the new tenant) and create with the following config:
 
 | Field | Value |
 |-------|-------|
 | Name | `syslog-test` |
 | Active | Yes |
+| Testing | Yes |
 
-Configure the dataset:
-- **Input:** syslog, port `5514`
-- **Output S3:** endpoint `localhost:9000`, bucket `packer`, access key and secret key from bytefreezer.com MinIO config, SSL off
+> **Testing mode** tells the packer to process data immediately instead of waiting for
+> accumulation thresholds (128MB or 20 minutes). Enable it to see parquet output within minutes.
+> Turn it off for production use.
+
+Configure the dataset source and destination:
+
+**Source config:**
+```json
+{
+  "type": "syslog",
+  "custom": {
+    "port": 5514,
+    "host": "0.0.0.0"
+  }
+}
+```
+
+**Destination config (S3/MinIO output):**
+
+For managed accounts using bytefreezer.com storage:
+
+```json
+{
+  "type": "s3",
+  "connection": {
+    "endpoint": "localhost:9000",
+    "bucket": "packer",
+    "region": "us-east-1",
+    "ssl": false,
+    "credentials": {
+      "type": "static",
+      "access_key": "YOUR_MINIO_ACCESS_KEY",
+      "secret_key": "YOUR_MINIO_SECRET_KEY"
+    }
+  }
+}
+```
+
+> **Important:** Both source AND destination must be configured at creation time. If you
+> update them later, send both together — config sub-objects are replaced entirely on update.
 
 Do NOT assign a proxy yet — we will do that after the proxy registers.
 
-**Verify:** Dataset appears in the Datasets list with status "active".
+**Verify:** Dataset appears in the Datasets list. Run "Test Dataset" — input should show
+"Plugin configured" and output should show "S3 connection successful".
 
 ---
 
 ## Phase 2: Deploy Proxy on Testhost
 
-### Step 5 — Create project directory
+### Step 6 — Prepare the host
 
-SSH to testhost:
+SSH to testhost and set up UDP buffer size for syslog:
 
 ```bash
 ssh testhost
+
+# Increase UDP buffer size (prevents "UDP buffer limited by kernel" warnings)
+sudo sysctl -w net.core.rmem_max=16777216
+# Make persistent across reboots:
+echo "net.core.rmem_max=16777216" | sudo tee -a /etc/sysctl.conf
+
 mkdir -p ~/bytefreezer-proxy/config
 cd ~/bytefreezer-proxy
 ```
 
-### Step 6 — Create docker-compose.yml
+### Step 7 — Create proxy config
 
-```bash
-cat > docker-compose.yml << 'EOF'
-services:
-  proxy:
-    image: ghcr.io/bytefreezer/bytefreezer-proxy:latest
-    container_name: bytefreezer-proxy
-    ports:
-      - "8008:8008"
-      - "5514:5514/udp"
-    environment:
-      PROXY_CONTROL_SERVICE_API_KEY: ${CONTROL_API_KEY}
-    volumes:
-      - ./config/proxy.yaml:/etc/bytefreezer/config.yaml:ro
-      - proxy-spool:/var/spool/bytefreezer-proxy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8008/api/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
-
-volumes:
-  proxy-spool:
-EOF
-```
-
-### Step 7 — Create .env
-
-Replace `YOUR_API_KEY` with the key from Step 2:
-
-```bash
-cat > .env << 'EOF'
-CONTROL_API_KEY=YOUR_API_KEY
-EOF
-```
-
-### Step 8 — Create proxy config
+Replace `YOUR_ACCOUNT_ID` and `YOUR_API_KEY` with values from Steps 2-3:
 
 ```bash
 cat > config/proxy.yaml << 'EOF'
@@ -137,22 +149,22 @@ app:
   name: "bytefreezer-proxy"
   version: "1.0.0"
 
+account_id: "YOUR_ACCOUNT_ID"
+bearer_token: "YOUR_API_KEY"
+control_url: "https://api.bytefreezer.com"
+config_mode: "control-only"
+
 server:
   api_port: 8008
 
 receiver:
-  url: "https://receiver.bytefreezer.com"
+  base_url: "https://receiver.bytefreezer.com"
 
-control_service:
+config_polling:
   enabled: true
-  control_url: "https://api.bytefreezer.com"
-  timeout_seconds: 30
-
-udp:
-  enabled: true
-  ports:
-    - port: 5514
-      name: syslog
+  interval_seconds: 30
+  timeout_seconds: 10
+  retry_on_error: true
 
 batching:
   enabled: true
@@ -174,10 +186,61 @@ health_reporting:
   report_interval: 30
   timeout_seconds: 10
   register_on_startup: true
+
+error_tracking:
+  enabled: true
 EOF
 ```
 
-### Step 9 — Start the proxy
+> **Config field reference:**
+> - `account_id` — required, from Step 2
+> - `bearer_token` — required, the API key from Step 3
+> - `control_url` — the control API, always `https://api.bytefreezer.com`
+> - `config_mode: "control-only"` — proxy fetches dataset config from control API
+> - `receiver.base_url` — where proxy sends data, always `https://receiver.bytefreezer.com`
+
+### Step 8 — Create docker-compose.yml
+
+```bash
+cat > docker-compose.yml << 'EOF'
+services:
+  proxy:
+    image: ghcr.io/bytefreezer/bytefreezer-proxy:latest
+    container_name: bytefreezer-proxy
+    ports:
+      - "8008:8008"
+      - "5514:5514/udp"
+    volumes:
+      - ./config/proxy.yaml:/etc/bytefreezer-proxy/config.yaml:ro
+      - proxy-spool:/var/spool/bytefreezer-proxy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8008/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  fakedata:
+    image: ghcr.io/bytefreezer/bytefreezer-fakedata:latest
+    container_name: bytefreezer-fakedata
+    network_mode: host
+    command: ["syslog", "--host", "127.0.0.1", "--port", "5514", "--rate", "10"]
+    restart: unless-stopped
+    depends_on:
+      proxy:
+        condition: service_started
+
+volumes:
+  proxy-spool:
+EOF
+```
+
+> **Notes:**
+> - Config mounts to `/etc/bytefreezer-proxy/config.yaml` (the image default path)
+> - Healthcheck uses `wget` (not `curl`) — the minimal image may not have curl
+> - Fakedata uses `network_mode: host` to reach the proxy's published UDP port
+
+### Step 9 — Start everything
 
 ```bash
 docker compose up -d
@@ -187,18 +250,22 @@ docker compose up -d
 
 ```bash
 docker compose ps
-# Should show: bytefreezer-proxy  healthy
+# Should show both containers running
 
-docker compose logs proxy | head -20
+docker compose logs proxy --tail 20
 # Look for: "Health report sent successfully"
 # Look for: "Registered with control service"
+# Look for: "Config polling" — dataset config received from control
+
+docker compose logs fakedata --tail 5
+# Should show syslog messages being sent
 ```
 
 ### Step 10 — Verify proxy appears on dashboard
 
 Go to bytefreezer.com **Service Status** page.
 
-**Verify:** The proxy instance appears with status "Healthy" under your test-managed account.
+**Verify:** The proxy instance appears with status "Healthy" under your account.
 
 ### Step 11 — Assign dataset to proxy
 
@@ -206,48 +273,33 @@ Go to **Datasets** → `syslog-test` → Edit.
 Set **Assigned Proxy** to the proxy instance that just registered.
 Save.
 
-**Verify:** Dataset shows the assigned proxy ID.
+**Verify:** Dataset shows the assigned proxy ID. Within 30 seconds (next config poll), the proxy picks up the dataset and starts the syslog plugin.
+
+Check proxy logs:
+```bash
+docker compose logs proxy | grep -i "syslog\|plugin\|listening"
+# Should show: syslog plugin started, listening on 0.0.0.0:5514
+```
 
 ---
 
-## Phase 3: Generate Test Data
+## Phase 3: Verify the Pipeline
 
-### Step 12 — Run fakedata
-
-On testhost, in a separate terminal:
+### Step 12 — Check proxy is forwarding data
 
 ```bash
-docker run --rm --network host \
-  ghcr.io/bytefreezer/bytefreezer-fakedata:latest \
-  syslog --host 127.0.0.1 --port 5514 --rate 10
+docker compose logs proxy --tail 20 | grep -i "batch\|forward\|sent"
+# Should show batches being compressed and sent to the receiver
 ```
 
-This sends 10 syslog messages per second to the proxy.
-
-**Verify:**
-
+If you see TLS or connection errors, check:
 ```bash
-# Check proxy is receiving data
-docker compose logs proxy --tail 20
-# Look for: batch/plugin activity, forwarding to receiver
+# Test connectivity from the host (not inside container)
+curl -s https://receiver.bytefreezer.com
+curl -s https://api.bytefreezer.com/api/v1/health
 ```
 
-### Step 13 — Verify proxy forwards to receiver
-
-```bash
-docker compose logs proxy | grep -i "forward\|batch\|sent"
-# Should show batches being sent to the receiver
-```
-
-If you see connection errors to the receiver, check:
-- Can you reach it? `curl -s https://receiver.bytefreezer.com` from testhost
-- DNS resolving? `dig receiver.bytefreezer.com`
-
----
-
-## Phase 4: Verify the Pipeline
-
-### Step 14 — Check Statistics page
+### Step 13 — Check Statistics page
 
 On bytefreezer.com, navigate to **Statistics**.
 
@@ -255,42 +307,43 @@ On bytefreezer.com, navigate to **Statistics**.
 - Events received counter is increasing
 - Proxy card shows activity
 - Receiver card shows intake
-- Piper card shows processing (if data has been processed)
-- Packer card shows parquet output (after packing cycle)
+- Piper card shows processing
 
-### Step 15 — Check Activity page
+### Step 14 — Check for parquet output
 
-Navigate to **Activity**.
+Since the dataset has **testing mode** enabled, the packer processes data on each housekeeping
+cycle (~5 minutes) without waiting for accumulation thresholds.
+
+Navigate to **Activity** page.
 
 **Verify:**
 - Piper processing entries appear
-- Packer accumulation entries appear (may take a few minutes)
+- Packer entries show "testing mode — bypassing accumulation" and successful parquet upload
 
-### Step 16 — Check MinIO buckets
-
-Access MinIO console on bytefreezer.com (port 9001) or use `mc`:
-
-**Verify these buckets have data:**
+Check parquet files:
+- Go to **Datasets** → `syslog-test` → **Parquet Files** tab
+- Or check MinIO console at bytefreezer.com:9001
 
 | Bucket | Contains | Meaning |
 |--------|----------|---------|
-| `bytefreezer-intake` | `.jsonl.snappy` files | Receiver stored raw data |
-| `bytefreezer-piper` | `.jsonl` files | Piper processed data |
-| `packer` (or tenant bucket) | `.parquet` files | Packer produced final output |
+| `bytefreezer-intake` | `.ndjson.gz` files | Receiver stored raw data |
+| `bytefreezer-piper` | `.ndjson` files | Piper processed data |
+| `packer` | `.parquet` files | Packer produced final output |
 
-### Step 17 — Query parquet data
+### Step 15 — Query parquet data
 
 Navigate to **Query** page on bytefreezer.com.
 
-Select the dataset and run a query. You should see the fake syslog events with fields like `source_ip`, `dest_ip`, `action`, `username`, etc.
+Select the dataset and run a query. You should see the fake syslog events with fields like
+`source_ip`, `dest_ip`, `action`, `username`, etc.
 
 **Verify:** Query returns rows matching the fakedata events.
 
 ---
 
-## Phase 5: Explore Features
+## Phase 4: Explore Features
 
-### Step 18 — Add a transformation
+### Step 16 — Add a transformation
 
 Go to **Datasets** → `syslog-test` → **Pipeline** tab.
 
@@ -299,11 +352,11 @@ Add a transformation, for example:
 - **Add field:** `environment` = `"test"`
 - **Filter:** drop events where `action` = `"heartbeat"` (if any)
 
-Save the dataset. Wait for piper to pick up the new config (up to 5 minutes).
+Save. Wait for piper to pick up the new config (up to 5 minutes).
 
 **Verify:** Run a query. New events should have the renamed/added fields. Old events remain unchanged.
 
-### Step 19 — Enable GeoIP enrichment (if GeoIP database available)
+### Step 17 — Enable GeoIP enrichment (if GeoIP database available)
 
 Go to **Datasets** → `syslog-test` → **Pipeline** tab.
 
@@ -311,21 +364,30 @@ Enable GeoIP enrichment on the `source_ip` field.
 
 **Verify:** New events include `source_ip_geo_country`, `source_ip_geo_city`, etc.
 
-### Step 20 — Check parquet files
+### Step 18 — Disable testing mode
 
-After the packer cycle completes (check Activity page), verify that new parquet files contain the transformed fields.
+Once you've verified the pipeline works, disable testing mode for production behavior:
 
-**Verify:** Query returns events with transformation applied and GeoIP data (if enabled).
+Go to **Datasets** → `syslog-test` → Edit → set **Testing** to No.
+
+The packer will now accumulate data until 128MB or 20 minutes before producing parquet files,
+resulting in larger, more efficient output files.
 
 ---
 
-## Phase 6: Cleanup
+## Deployment Complete
 
-### Stop fakedata
+Your managed proxy is running and producing parquet data. See **[What Happens After Deployment](guide-post-deployment.md)** to understand:
+- What you're looking at on the dashboard
+- How to play with transformations and GeoIP enrichment
+- How this demo differs from a production on-prem deployment
+- What the "final mile" to your SIEM looks like
 
-`Ctrl+C` the fakedata container.
+---
 
-### Stop proxy
+## Phase 5: Cleanup
+
+### Stop everything
 
 ```bash
 cd ~/bytefreezer-proxy
@@ -342,9 +404,9 @@ On bytefreezer.com, delete the `test-managed` account.
 
 **Proxy not registering with control:**
 ```bash
-docker compose logs proxy | grep -i control
-# Check API key is correct in .env
-# Check control_url in proxy.yaml
+docker compose logs proxy | grep -i "control\|auth\|401\|403"
+# Check: account_id and bearer_token in proxy.yaml match the account and API key
+# Check: control_url is https://api.bytefreezer.com (not http)
 ```
 
 **Proxy cannot reach receiver:**
@@ -353,18 +415,30 @@ curl -v https://receiver.bytefreezer.com
 # If connection refused: check DNS, check receiver is running on bytefreezer.com
 ```
 
+**"UDP buffer limited by kernel" warnings:**
+```bash
+sudo sysctl -w net.core.rmem_max=16777216
+```
+
 **No data in Statistics:**
 - Wait 1-2 minutes for health report cycle
 - Check proxy logs for errors
 - Verify dataset is assigned to the proxy
 - Verify dataset is active (not paused)
+- Verify fakedata is running and sending to the correct port
 
 **Piper not processing:**
-- Check piper logs on bytefreezer.com: `journalctl -u bytefreezer-piper -f`
+- Check piper logs on bytefreezer.com: `sudo journalctl -u bytefreezer-piper -f`
 - Verify data exists in intake bucket
 - Check dataset has processing enabled
 
 **No parquet files:**
-- Packer runs on a cycle (housekeeping interval). Wait a few minutes.
-- Check packer logs: `journalctl -u bytefreezer-packer -f`
+- If testing mode OFF: packer waits for 128MB or 20 minutes. Enable testing mode for faster output.
+- If testing mode ON: packer processes on each housekeeping cycle (~5 min). Wait one cycle.
+- Check packer logs: `sudo journalctl -u bytefreezer-packer -f`
+- Verify dataset has S3 destination configured (endpoint, bucket, credentials)
 - Verify data exists in piper bucket
+
+**Dataset update wiped source/destination config:**
+- The update API replaces entire sub-objects. Always send the full config.source AND
+  config.destination together when updating either one.
