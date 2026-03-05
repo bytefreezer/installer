@@ -30,7 +30,7 @@ Claude handles everything — account creation, config generation, deployment, d
 | [On-Prem: Docker Compose](docs/guide-onprem-docker-compose.md) | Full stack on a single host, your data stays local |
 | [On-Prem: Kubernetes](docs/guide-onprem-kubernetes.md) | Full stack on K8s with Helm charts |
 | [Deploy with Claude + MCP](docs/guide-deploy-with-claude.md) | AI-assisted deployment using Claude Code |
-| [What Happens After Deployment](docs/guide-post-deployment.md) | Understand the dashboard, try transformations, demo vs. production |
+| Post-deployment content is included in each guide above | Dashboard overview, transformations, connector, demo vs. production |
 
 ---
 
