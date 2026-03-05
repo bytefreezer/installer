@@ -316,6 +316,44 @@ piper:
     reportInterval: 30
 
 # ============================================================================
+# Connector Configuration
+# Reads parquet output and exports subsets to external systems (optional)
+# ============================================================================
+connector:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: bytefreezer/connector
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    apiPort: 8090
+
+  # Schedule settings for watch mode
+  schedule:
+    intervalSeconds: 60
+    batchSize: 1000
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnv: []
+
+  healthReporting:
+    enabled: true
+    reportInterval: 30
+
+# ============================================================================
 # Service Account
 # ============================================================================
 serviceAccount:

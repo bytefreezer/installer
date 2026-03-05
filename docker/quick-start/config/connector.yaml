@@ -1,0 +1,39 @@
+# ByteFreezer Connector Configuration
+# Reads parquet output and exports subsets to external systems
+
+logging:
+  level: info
+
+server:
+  port: 8090
+
+# Control plane connection (required)
+control:
+  url: ""  # Set via CONTROL_URL env or edit here
+  api_key: ""  # Set via CONTROL_API_KEY env or edit here
+  account_id: ""  # Set via ACCOUNT_ID env or edit here
+
+# Health reporting to control plane
+health_reporting:
+  enabled: true
+  report_interval: 30
+
+# Query configuration (set for batch/watch modes)
+query:
+  tenant_id: ""
+  dataset_id: ""
+  sql: "SELECT * FROM read_parquet('PARQUET_PATH', hive_partitioning=true, union_by_name=true) LIMIT 100"
+
+# Destination for exported data
+destination:
+  type: stdout
+  config: {}
+
+# Cursor persistence
+cursor:
+  file: /app/cursor.json
+
+# Schedule settings for watch mode
+schedule:
+  interval_seconds: 60
+  batch_size: 1000

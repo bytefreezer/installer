@@ -115,6 +115,25 @@ services:
       retries: 3
     restart: unless-stopped
 
+  # Connector - reads parquet output, exports to external systems (optional)
+  connector:
+    image: ${IMAGE_REGISTRY:-ghcr.io/bytefreezer}/bytefreezer-connector:${IMAGE_TAG:-latest}
+    container_name: bytefreezer-connector
+    ports:
+      - "8090:8090"  # Web UI / API
+    environment:
+      HOST_HOSTNAME: ${HOST_HOSTNAME:-${HOSTNAME}}
+    volumes:
+      - ./config/connector.yaml:/app/config.yaml:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8090/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    profiles:
+      - with-connector
+
   # Prometheus - Metrics collection and monitoring (optional)
   prometheus:
     image: prom/prometheus:v2.48.0

@@ -27,7 +27,7 @@ parquet:
 
 housekeeping:
   enabled: true
-  intervalseconds: 60
+  interval_seconds: 60
 
 otel:
   enabled: false

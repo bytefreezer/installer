@@ -83,7 +83,7 @@ data:
 
     housekeeping:
       enabled: {{ .Values.piper.housekeeping.enabled }}
-      intervalseconds: {{ .Values.piper.housekeeping.intervalSeconds }}
+      interval_seconds: {{ .Values.piper.housekeeping.intervalSeconds }}
 
     dlq:
       enabled: {{ .Values.piper.dlq.enabled }}

@@ -1,0 +1,82 @@
+{{- if .Values.connector.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "bytefreezer.connector.fullname" . }}
+  labels:
+    {{- include "bytefreezer.connector.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.connector.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "bytefreezer.connector.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/connector/configmap.yaml") . | sha256sum }}
+      labels:
+        {{- include "bytefreezer.connector.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "bytefreezer.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: connector
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ include "bytefreezer.imageRegistry" . }}{{ .Values.connector.image.repository }}:{{ .Values.connector.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.connector.image.pullPolicy }}
+          args:
+            - --config=/app/config.yaml
+          ports:
+            - name: api
+              containerPort: {{ .Values.connector.service.apiPort }}
+              protocol: TCP
+          env:
+            - name: BYTEFREEZER_CONNECTOR_CONTROL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bytefreezer.controlSecretName" . }}
+                  key: apiKey
+                  optional: true
+            {{- with .Values.connector.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: api
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: api
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.connector.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /app
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "bytefreezer.connector.fullname" . }}
+      {{- with .Values.connector.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.connector.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.connector.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

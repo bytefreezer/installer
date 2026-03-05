@@ -196,3 +196,17 @@ app.kubernetes.io/component: piper
 {{ include "bytefreezer.selectorLabels" . }}
 app.kubernetes.io/component: piper
 {{- end }}
+
+{{- define "bytefreezer.connector.fullname" -}}
+{{- printf "%s-connector" (include "bytefreezer.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{- define "bytefreezer.connector.labels" -}}
+{{ include "bytefreezer.labels" . }}
+app.kubernetes.io/component: connector
+{{- end }}
+
+{{- define "bytefreezer.connector.selectorLabels" -}}
+{{ include "bytefreezer.selectorLabels" . }}
+app.kubernetes.io/component: connector
+{{- end }}

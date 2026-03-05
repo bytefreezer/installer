@@ -147,6 +147,9 @@ config/
 
 ```bash
 docker compose up -d
+
+# Optional: include the connector (reads parquet, exports to external systems)
+# docker compose --profile with-connector up -d
 ```
 
 ### Step 7 -- Verify all services are running

@@ -1,0 +1,32 @@
+# ByteFreezer Connector Configuration
+# Managed by Ansible
+
+logging:
+  level: info
+
+server:
+  port: {{ connector_api_port }}
+
+control:
+  url: "{{ control_service_url }}"
+  account_id: ""
+
+health_reporting:
+  enabled: true
+  report_interval: 30
+
+query:
+  tenant_id: ""
+  dataset_id: ""
+  sql: "SELECT * FROM read_parquet('PARQUET_PATH', hive_partitioning=true, union_by_name=true) LIMIT 100"
+
+destination:
+  type: stdout
+  config: {}
+
+cursor:
+  file: /app/cursor.json
+
+schedule:
+  interval_seconds: 60
+  batch_size: 1000

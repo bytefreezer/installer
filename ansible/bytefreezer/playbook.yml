@@ -24,6 +24,8 @@
     - role: receiver
     - role: piper
     - role: packer
+    - role: connector
+      when: connector_enabled | default(false)
     - role: prometheus
       when: monitoring_enabled | default(false)
 
@@ -38,6 +40,9 @@
           Packer: http://{{ ansible_host }}:8083
           {% if minio_enabled %}
           MinIO: http://{{ ansible_host }}:9000 (S3), http://{{ ansible_host }}:9001 (Console)
+          {% endif %}
+          {% if connector_enabled %}
+          Connector: http://{{ ansible_host }}:8090
           {% endif %}
           {% if monitoring_enabled %}
           Prometheus: http://{{ ansible_host }}:9090

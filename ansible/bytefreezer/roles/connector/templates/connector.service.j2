@@ -1,0 +1,24 @@
+[Unit]
+Description=ByteFreezer Connector
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=5
+
+ExecStartPre=-/usr/bin/docker stop bytefreezer-connector
+ExecStartPre=-/usr/bin/docker rm bytefreezer-connector
+
+ExecStart=/usr/bin/docker run --rm \
+  --name bytefreezer-connector \
+  --network host \
+  -v {{ bytefreezer_config_dir }}/connector/config.yaml:/app/config.yaml:ro \
+  -e BYTEFREEZER_CONNECTOR_CONTROL_API_KEY={{ vault_control_service_api_key }} \
+  {{ image_registry }}/bytefreezer-connector:{{ image_tag }}
+
+ExecStop=/usr/bin/docker stop bytefreezer-connector
+
+[Install]
+WantedBy=multi-user.target

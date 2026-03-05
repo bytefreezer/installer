@@ -44,7 +44,7 @@ data:
 
     housekeeping:
       enabled: {{ .Values.packer.housekeeping.enabled }}
-      intervalseconds: {{ .Values.packer.housekeeping.intervalSeconds }}
+      interval_seconds: {{ .Values.packer.housekeeping.intervalSeconds }}
 
     otel:
       enabled: {{ .Values.monitoring.enabled }}

@@ -37,7 +37,7 @@ data:
 
     housekeeping:
       enabled: true
-      intervalseconds: 60
+      interval_seconds: 60
 
     dlq:
       enabled: {{ if .Values.receiver.dlq }}{{ .Values.receiver.dlq.enabled | default true }}{{ else }}true{{ end }}
