@@ -317,10 +317,10 @@ piper:
 
 # ============================================================================
 # Connector Configuration
-# Reads parquet output and exports subsets to external systems (optional)
+# Reads parquet output and exports subsets to external systems
 # ============================================================================
 connector:
-  enabled: false
+  enabled: true
   replicaCount: 1
   image:
     repository: bytefreezer/connector

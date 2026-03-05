@@ -46,8 +46,8 @@ packer_api_port: 8083
 packer_metrics_port: 9093
 packer_parquet_max_size_mb: 128
 
-# Connector (optional - reads parquet, exports to external systems)
-connector_enabled: false
+# Connector - reads parquet, exports to external systems
+connector_enabled: true
 connector_api_port: 8090
 
 # Monitoring

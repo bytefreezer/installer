@@ -211,7 +211,7 @@ In production, the architecture changes:
    - **Snowflake/Databricks/BigQuery** — load parquet directly (native format)
    - **Custom dashboards** — query parquet with DuckDB, Pandas, Spark, etc.
 
-4. **The query component is a reference implementation.** The query page on bytefreezer.com shows that parquet data is queryable. In production, you (or your operator) would build or configure the final mile — the connector that pushes processed parquet data into your SIEM, data lake, or analytics platform. The [example query project](https://github.com/bytefreezer/query-example) and [ByteFreezer MCP](https://github.com/bytefreezer/mcp) are starting points for building this integration.
+4. **The query page is for managed deployments.** The query page on bytefreezer.com lets you run SQL against parquet data stored on managed infrastructure. For on-prem deployments, the **Connector** service (included by default) provides a local web UI to query and export parquet data from your own MinIO/S3. See the [on-prem post-deployment guide](guide-post-deployment-onprem.md) for connector details.
 
 5. **Testing mode is disabled.** Packer accumulates data to produce larger, more efficient parquet files (128MB or 20-minute batches).
 
@@ -236,5 +236,5 @@ The control plane (bytefreezer.com) only handles configuration, health monitorin
 
 - **Try managed first?** See [Managed Deployment](guide-managed.md) (proxy only, fastest to set up)
 - **Want to deploy on-prem?** See [On-Prem Docker Compose](guide-onprem-docker.md) or [On-Prem Kubernetes](guide-onprem-k8s.md)
-- **Want to build the final mile?** Check the [example query project](https://github.com/bytefreezer/query-example) for connecting parquet to your SIEM
+- **Deployed on-prem?** See the [on-prem post-deployment guide](guide-post-deployment-onprem.md) for Connector usage
 - **Questions?** Contact us at https://bytefreezer.com/contact

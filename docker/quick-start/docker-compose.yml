@@ -167,7 +167,7 @@ services:
     networks:
       - bytefreezer
 
-  # Connector - reads parquet output, exports to external systems (optional)
+  # Connector - reads parquet output, exports to external systems
   connector:
     image: ${IMAGE_REGISTRY:-ghcr.io/bytefreezer}/bytefreezer-connector:${IMAGE_TAG:-latest}
     container_name: bf-connector
@@ -187,8 +187,6 @@ services:
     restart: unless-stopped
     networks:
       - bytefreezer
-    profiles:
-      - with-connector
 
   # Fakedata - sends synthetic syslog to proxy
   fakedata:

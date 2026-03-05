@@ -182,6 +182,14 @@ packer:
   image:
     repository: ghcr.io/bytefreezer/bytefreezer-packer
     tag: "latest"
+
+# Connector - reads parquet output, exports to external systems
+connector:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ghcr.io/bytefreezer/bytefreezer-connector
+    tag: "latest"
 ```
 
 Replace `YOUR_API_KEY_HERE` with the key from Step 1.
@@ -207,6 +215,7 @@ kubectl get pods -n bytefreezer
 | bytefreezer-receiver-* | Running |
 | bytefreezer-piper-* | Running |
 | bytefreezer-packer-* | Running |
+| bytefreezer-connector-* | Running |
 | bytefreezer-minio-* | Running |
 
 ```bash
@@ -816,11 +825,11 @@ Show me how to query the parquet files in my Kubernetes MinIO.
 
 ## After Deployment
 
-See **[What Happens After Deployment](guide-post-deployment.md)** for details on:
+See **[What Happens After Deployment (On-Prem)](guide-post-deployment-onprem.md)** for details on:
 - What you are looking at on the dashboard
+- How to use the Connector to query and export parquet data
 - How to play with transformations and GeoIP enrichment
 - How data flows through each pipeline stage
-- How to connect parquet output to your SIEM
 
 ---
 

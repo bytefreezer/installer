@@ -147,9 +147,6 @@ config/
 
 ```bash
 docker compose up -d
-
-# Optional: include the connector (reads parquet, exports to external systems)
-# docker compose --profile with-connector up -d
 ```
 
 ### Step 7 -- Verify all services are running
@@ -167,6 +164,7 @@ docker compose ps
 | bf-piper | 8082 | healthy |
 | bf-packer | 8083 | healthy |
 | bf-proxy | 8008, 5514/udp | healthy |
+| bf-connector | 8090 | healthy |
 | bf-fakedata | -- | running (restarts until dataset configured) |
 
 Note: bf-fakedata will restart repeatedly until a dataset is configured and proxy starts accepting syslog. This is expected.
@@ -536,11 +534,11 @@ Show me how to query the parquet files in my MinIO on testhost.
 
 ## After Deployment
 
-See **[What Happens After Deployment](guide-post-deployment.md)** for details on:
+See **[What Happens After Deployment (On-Prem)](guide-post-deployment-onprem.md)** for details on:
 - What you are looking at on the dashboard
+- How to use the Connector to query and export parquet data
 - How to play with transformations and GeoIP enrichment
 - How data flows through each pipeline stage
-- How to connect parquet output to your SIEM
 
 ---
 
