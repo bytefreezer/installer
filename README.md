@@ -18,7 +18,7 @@ Then tell Claude what you want:
 
 Claude handles everything — account creation, config generation, deployment, dataset assignment, and verification. Works with Docker Compose, Kubernetes (Helm), systemd, or standalone binaries.
 
-**[Read the full guide](docs/guide-deploy-with-claude.md)**
+**[Read the full guide](#deploy-with-claude--mcp)**
 
 ---
 
@@ -26,10 +26,10 @@ Claude handles everything — account creation, config generation, deployment, d
 
 | Guide | Description |
 |-------|-------------|
-| [Managed Quickstart](docs/guide-managed-quickstart.md) | Proxy test only — deploy a single proxy, we handle the rest |
-| [On-Prem: Docker Compose](docs/guide-onprem-docker-compose.md) | Full stack on a single host, your data stays local |
-| [On-Prem: Kubernetes](docs/guide-onprem-kubernetes.md) | Full stack on K8s with Helm charts |
-| [Deploy with Claude + MCP](docs/guide-deploy-with-claude.md) | AI-assisted deployment using Claude Code |
+| [Managed Quickstart](docs/guide-managed.md) | Proxy test only — deploy a single proxy, we handle the rest |
+| [On-Prem: Docker Compose](docs/guide-onprem-docker.md) | Full stack on a single host, your data stays local |
+| [On-Prem: Kubernetes](docs/guide-onprem-k8s.md) | Full stack on K8s with Helm charts |
+| [Deploy with Claude + MCP](#deploy-with-claude--mcp) | AI-assisted deployment using Claude Code |
 | Post-deployment content is included in each guide above | Dashboard overview, transformations, connector, demo vs. production |
 
 ---
