@@ -489,14 +489,16 @@ Your Workstation                    Remote
 +------------------+                                piper, packer, minio)
 ```
 
-Tell Claude what you want. Include the target host so Claude knows where to deploy:
+Tell Claude what you want. Replace `testhost` with your actual hostname or IP address so Claude knows where to deploy:
 
 ```
-Deploy a full on-prem ByteFreezer stack with Docker Compose on testhost via SSH.
+Deploy a full on-prem ByteFreezer stack with Docker Compose on <your-host> via SSH.
 Create a tenant "demo" and a syslog dataset on port 5514. Include MinIO
 for storage. After everything is running, start fakedata and verify data
 flows all the way to parquet.
 ```
+
+> **Example:** If your host is `192.168.1.50`, say "...on 192.168.1.50 via SSH."
 
 **What Claude does behind the scenes:**
 

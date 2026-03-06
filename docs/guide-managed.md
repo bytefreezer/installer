@@ -529,14 +529,16 @@ Your Workstation                    Remote
 +------------------+
 ```
 
-Tell Claude what you want. Include the target host so Claude knows where to deploy:
+Tell Claude what you want. Replace `testhost` with your actual hostname or IP address so Claude knows where to deploy:
 
 ```
 I want to try ByteFreezer managed. Create a tenant "demo" with a syslog
 dataset on port 5514, then generate a docker-compose setup for the proxy
-and deploy it on testhost via SSH. After it's running, assign the dataset
+and deploy it on <your-host> via SSH. After it's running, assign the dataset
 to the proxy and send some test data with fakedata to verify the pipeline works.
 ```
+
+> **Example:** If your host is `192.168.1.50`, say "...on 192.168.1.50 via SSH."
 
 **What Claude does behind the scenes:**
 
