@@ -8,14 +8,14 @@ metadata:
 data:
   config.yaml: |
     app:
-      name: "bytefreezer-packer"
+      name: "packer"
       version: {{ .Chart.AppVersion | quote }}
 
     server:
       api_port: {{ .Values.packer.service.apiPort }}
 
     bytefreezer:
-      spool_path: "/var/spool/bytefreezer-packer"
+      spool_path: "/var/spool/packer"
 
     s3source:
       bucket_name: {{ .Values.s3.buckets.piper | quote }}
@@ -53,7 +53,7 @@ data:
       otlp_endpoint: {{ include "bytefreezer.metricsEndpoint" . | quote }}
       {{- end }}
       push_interval_seconds: {{ .Values.monitoring.pushIntervalSeconds }}
-      service_name: "bytefreezer-packer"
+      service_name: "packer"
       metrics_host: "0.0.0.0"
       metrics_port: 9093
 

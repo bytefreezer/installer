@@ -1,5 +1,5 @@
 app:
-  name: "bytefreezer-piper"
+  name: "piper"
   version: "1.0.0"
   log_level: "info"
   deployment_type: "on_prem"
@@ -8,7 +8,7 @@ server:
   api_port: 8082
 
 s3_source:
-  bucket_name: "bytefreezer-intake"
+  bucket_name: "intake"
   region: "us-east-1"
   endpoint: "minio:9000"
   ssl: false
@@ -16,14 +16,14 @@ s3_source:
   poll_interval: "10s"
 
 s3_destination:
-  bucket_name: "bytefreezer-piper"
+  bucket_name: "piper"
   region: "us-east-1"
   endpoint: "minio:9000"
   ssl: false
   use_iam_role: false
 
 s3_geoip:
-  bucket_name: "bytefreezer-geoip"
+  bucket_name: "geoip"
   region: "us-east-1"
   endpoint: "minio:9000"
   ssl: false
@@ -54,7 +54,7 @@ monitoring:
   push_interval_seconds: 15
   metrics_host: "0.0.0.0"
   metrics_port: 9092
-  service_name: "bytefreezer-piper"
+  service_name: "piper"
 
 housekeeping:
   enabled: true

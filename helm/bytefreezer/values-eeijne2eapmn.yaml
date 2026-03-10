@@ -13,9 +13,9 @@ s3:
   secretKey: "miniopassword"
   useSSL: false
   buckets:
-    intake: "bytefreezer-intake"
-    piper: "bytefreezer-piper"
-    geoip: "bytefreezer-geoip"
+    intake: "intake"
+    piper: "piper"
+    geoip: "geoip"
 
 # Control Service (bytefreezer.com)
 controlService:

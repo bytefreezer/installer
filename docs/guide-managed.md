@@ -373,8 +373,8 @@ Check parquet files:
 
 | Bucket | Contains | Meaning |
 |--------|----------|---------|
-| `bytefreezer-intake` | `.ndjson.gz` files | Receiver stored raw data |
-| `bytefreezer-piper` | `.ndjson` files | Piper processed data |
+| `intake` | `.ndjson.gz` files | Receiver stored raw data |
+| `piper` | `.ndjson` files | Piper processed data |
 | `packer` | `.parquet` files | Packer produced final output |
 
 ### Step 15 -- Check Service Status and Audit Log

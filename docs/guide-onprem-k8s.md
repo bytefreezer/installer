@@ -298,7 +298,7 @@ kubectl port-forward -n bytefreezer svc/bytefreezer-minio 9001:9001
 
 Open http://localhost:9001. Login: `minioadmin` / `minioadmin`.
 
-**Verify:** Buckets exist: `bytefreezer-intake`, `bytefreezer-piper`, `packer`, `bytefreezer-geoip`.
+**Verify:** Buckets exist: `intake`, `piper`, `packer`, `geoip`.
 
 ## Phase 3A: Deploy Proxy in Kubernetes
 
@@ -615,7 +615,7 @@ kubectl logs -n bytefreezer -l app.kubernetes.io/component=receiver --tail 20
 kubectl port-forward -n bytefreezer svc/bytefreezer-minio 9001:9001
 ```
 
-Open http://localhost:9001 -> `bytefreezer-intake` bucket. Files appear with `.jsonl.snappy` extension.
+Open http://localhost:9001 -> `intake` bucket. Files appear with `.jsonl.snappy` extension.
 
 ### Step 19 -- Verify piper processes
 
@@ -623,7 +623,7 @@ Open http://localhost:9001 -> `bytefreezer-intake` bucket. Files appear with `.j
 kubectl logs -n bytefreezer -l app.kubernetes.io/component=piper --tail 20
 ```
 
-**Verify:** `bytefreezer-piper` bucket in MinIO has `.jsonl` files.
+**Verify:** `piper` bucket in MinIO has `.jsonl` files.
 
 ### Step 20 -- Verify packer produces parquet
 

@@ -119,13 +119,13 @@ Resources:
   PiperLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub '/ecs/bytefreezer-piper-${Environment}'
+      LogGroupName: !Sub '/ecs/piper-${Environment}'
       RetentionInDays: 30
 
   PackerLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub '/ecs/bytefreezer-packer-${Environment}'
+      LogGroupName: !Sub '/ecs/packer-${Environment}'
       RetentionInDays: 30
 
   # IAM Role for ECS Tasks
@@ -332,7 +332,7 @@ Resources:
   PiperTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: !Sub 'bytefreezer-piper-${Environment}'
+      Family: !Sub 'piper-${Environment}'
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
@@ -342,7 +342,7 @@ Resources:
       TaskRoleArn: !GetAtt TaskRole.Arn
       ContainerDefinitions:
         - Name: piper
-          Image: !Sub '${ImageRegistry}/bytefreezer-piper:${ImageTag}'
+          Image: !Sub '${ImageRegistry}/piper:${ImageTag}'
           Essential: true
           PortMappings:
             - ContainerPort: 8082
@@ -406,7 +406,7 @@ Resources:
   PiperService:
     Type: AWS::ECS::Service
     Properties:
-      ServiceName: !Sub 'bytefreezer-piper-${Environment}'
+      ServiceName: !Sub 'piper-${Environment}'
       Cluster: !Ref ECSCluster
       TaskDefinition: !Ref PiperTaskDefinition
       DesiredCount: !Ref PiperDesiredCount
@@ -422,7 +422,7 @@ Resources:
   PackerTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      Family: !Sub 'bytefreezer-packer-${Environment}'
+      Family: !Sub 'packer-${Environment}'
       NetworkMode: awsvpc
       RequiresCompatibilities:
         - FARGATE
@@ -432,7 +432,7 @@ Resources:
       TaskRoleArn: !GetAtt TaskRole.Arn
       ContainerDefinitions:
         - Name: packer
-          Image: !Sub '${ImageRegistry}/bytefreezer-packer:${ImageTag}'
+          Image: !Sub '${ImageRegistry}/packer:${ImageTag}'
           Essential: true
           PortMappings:
             - ContainerPort: 8083
@@ -474,7 +474,7 @@ Resources:
   PackerService:
     Type: AWS::ECS::Service
     Properties:
-      ServiceName: !Sub 'bytefreezer-packer-${Environment}'
+      ServiceName: !Sub 'packer-${Environment}'
       Cluster: !Ref ECSCluster
       TaskDefinition: !Ref PackerTaskDefinition
       DesiredCount: !Ref PackerDesiredCount
