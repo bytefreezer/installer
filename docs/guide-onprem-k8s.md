@@ -646,7 +646,7 @@ kubectl logs -n bytefreezer -l app.kubernetes.io/component=packer --tail 20
 **Service Status page:**
 - All services Healthy
 
-**Query page:**
+**Connector UI** (`http://<your-host>:8090`):
 - Run query against `syslog-test` dataset
 - Returns rows with fakedata fields
 
@@ -664,7 +664,7 @@ Add:
 
 Save. Wait for piper config refresh (up to 5 minutes).
 
-**Verify:** New events in query have `src` and `cluster` fields.
+**Verify:** New events in Connector have `src` and `cluster` fields.
 
 ### Step 23 -- Test dataset pause
 
@@ -743,7 +743,7 @@ You should see `bytefreezer` in the list.
 Start Claude Code and run a quick smoke test to confirm the MCP server is reachable and your API key works:
 
 ```
-Check the ByteFreezer health, list all accounts, and show the health summary.
+Use bf_health_check, bf_list_accounts, and bf_health_summary to verify MCP connectivity.
 ```
 
 **Expected output:**
@@ -779,10 +779,10 @@ Your Workstation                    Remote
 Tell Claude what you want:
 
 ```
-Deploy ByteFreezer to my Kubernetes cluster with Helm.
-Create a tenant "demo" and a syslog dataset on port 5514. Use bundled MinIO.
-Generate the Helm values and install the chart.
-Then deploy fakedata and verify parquet output.
+Use bf_runbook name=onprem-full-docker-compose to deploy ByteFreezer to my
+Kubernetes cluster with Helm. Create a tenant "demo" and a syslog dataset
+on port 5514. Use bundled MinIO. Generate the Helm values, install the chart,
+deploy fakedata, and verify parquet output.
 ```
 
 **What Claude does behind the scenes:**
@@ -798,11 +798,11 @@ Then deploy fakedata and verify parquet output.
 ### Option B: Proxy on Edge Host, Stack in Kubernetes
 
 ```
-Deploy the ByteFreezer processing stack (receiver, piper, packer, minio)
-to my Kubernetes cluster with Helm. Deploy the proxy separately on testhost
-via SSH with Docker Compose. Create a tenant "demo" and a syslog dataset
-on port 5514. Wire the proxy to send data to the receiver in Kubernetes.
-Start fakedata on testhost and verify parquet output.
+Use bf_runbook name=onprem-full-docker-compose to deploy the ByteFreezer processing
+stack (receiver, piper, packer, minio) to my Kubernetes cluster with Helm, and
+the proxy separately on <your-host> via SSH with Docker Compose. Create a tenant
+"demo" and a syslog dataset on port 5514. Wire the proxy to the receiver in
+Kubernetes. Start fakedata and verify parquet output.
 ```
 
 Claude uses `bf_generate_helm_values` for the cluster stack and `bf_generate_docker_compose` with `scenario=proxy` for the edge proxy, wiring the receiver URL from the Kubernetes LoadBalancer IP. It SSHs into testhost to deploy the proxy.
@@ -812,7 +812,8 @@ Claude uses `bf_generate_helm_values` for the cluster stack and `bf_generate_doc
 Ask Claude to check the pipeline:
 
 ```
-Check all services are healthy, show dataset statistics, and list parquet files.
+Use bf_health_summary and bf_account_services to check all service health.
+Then use bf_dataset_statistics and bf_dataset_parquet_files to verify data flow.
 ```
 
 | Check | What Claude does |
@@ -826,14 +827,16 @@ Check all services are healthy, show dataset statistics, and list parquet files.
 ### Transformations
 
 ```
-Show me the schema, add a transformation to rename source_ip to src
-and add a field cluster="k8s-test". Test first, then activate.
+Use bf_transformation_schema to show me the schema, then use bf_test_transformation
+to test a transformation that renames source_ip to src and adds a field
+cluster="k8s-test". If it looks good, use bf_activate_transformation to deploy it.
 ```
 
 ### Kill Switch
 
 ```
-Pause the dataset, verify the proxy config dropped it, then resume.
+Use bf_update_dataset to pause the dataset, then use bf_get_proxy_config to verify
+the proxy dropped it. After 30 seconds, use bf_update_dataset to resume it.
 ```
 
 ### Query Your Data
@@ -841,21 +844,24 @@ Pause the dataset, verify the proxy config dropped it, then resume.
 Parquet files are in MinIO inside your cluster. Use the [example query project](https://github.com/bytefreezer/query-example) or ask Claude:
 
 ```
-Show me how to query the parquet files in my Kubernetes MinIO.
+Use bf_dataset_parquet_files to list my parquet files, then show me how to
+query them in my Kubernetes MinIO.
 ```
 
 ### What Else Can Claude Do?
 
-| Ask Claude to... | Tools it uses |
+| Ask Claude to... | MCP tool to mention |
 |---|---|
-| "Add a transformation to rename source_ip to src" | `bf_activate_transformation` |
-| "Show me the schema of my dataset" | `bf_transformation_schema` |
-| "Test this transformation config before deploying" | `bf_test_transformation` |
-| "Check which services are healthy" | `bf_health_status`, `bf_health_summary` |
-| "List my parquet files" | `bf_dataset_parquet_files` |
-| "Pause the dataset" | `bf_update_dataset` |
-| "Show me what filters are available" | `bf_filter_catalog` |
-| "Generate a systemd install script for bare metal" | `bf_generate_systemd` |
+| Deploy full stack (K8s or Docker) | `bf_runbook name=onprem-full-docker-compose` |
+| Remove on-prem deployment | `bf_runbook name=onprem-cleanup` |
+| Show dataset schema | `bf_transformation_schema` |
+| Test a transformation | `bf_test_transformation` |
+| Activate a transformation | `bf_activate_transformation` |
+| Check service health | `bf_health_summary`, `bf_account_services` |
+| List parquet files | `bf_dataset_parquet_files` |
+| Pause/resume a dataset | `bf_update_dataset` |
+| Show available filters | `bf_filter_catalog` |
+| Generate systemd install script | `bf_generate_systemd` |
 
 ---
 
@@ -1154,7 +1160,18 @@ The control plane (bytefreezer.com) only handles configuration, health monitorin
 
 ## Cleanup
 
-### Stop fakedata
+### With Claude + MCP (recommended)
+
+```
+Use bf_runbook name=onprem-cleanup to remove my on-prem ByteFreezer deployment.
+Kubernetes namespace is "bytefreezer". Proxy is on <your-host> (if Version B).
+```
+
+This runs the full cleanup runbook: uninstalls Helm releases, deletes PVCs/namespace, stops proxy on edge host (if applicable), and deletes datasets/tenants/service registrations from the control plane. The account and its API keys are preserved.
+
+### Manual cleanup
+
+#### Stop fakedata
 
 ```bash
 # Version A (in-cluster)
@@ -1164,26 +1181,26 @@ kubectl delete pod fakedata -n bytefreezer
 # Ctrl+C the docker run command
 ```
 
-### Uninstall Helm releases
+#### Uninstall Helm releases
 
 ```bash
 helm uninstall proxy -n bytefreezer
 helm uninstall bytefreezer -n bytefreezer
 ```
 
-### Delete PVCs
+#### Delete PVCs
 
 ```bash
 kubectl delete pvc -n bytefreezer --all
 ```
 
-### Delete namespace
+#### Delete namespace
 
 ```bash
 kubectl delete namespace bytefreezer
 ```
 
-### Stop proxy on testhost (Version B only)
+#### Stop proxy on testhost (Version B only)
 
 ```bash
 ssh testhost
@@ -1191,9 +1208,7 @@ cd ~/bytefreezer-proxy
 docker compose down -v
 ```
 
-### Remove test account (optional)
-
-On bytefreezer.com, delete the `test-onprem-k8s` account.
+Manual cleanup only removes infrastructure. You must also clean up control plane resources (tenants, datasets, service registrations) separately using MCP tools or the dashboard.
 
 ---
 

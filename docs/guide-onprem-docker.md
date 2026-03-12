@@ -343,11 +343,11 @@ Navigate to **Activity**.
 
 ### Step 21 -- Query parquet data
 
-Navigate to **Query** page on bytefreezer.com.
+Open the Connector web UI at `http://<your-host>:8090`.
 
-Run a query against your dataset. You should see fake syslog events.
+Select your dataset and run a query. You should see fake syslog events.
 
-**Verify:** Query returns rows with fields like `source_ip`, `dest_ip`, `action`, `username`, `bytes_sent`, etc.
+**Verify:** Query returns rows with fields like `source_ip`, `hostname`, `message`, `priority`, `tag`, etc.
 
 ## Phase 5: Explore Features
 
@@ -393,7 +393,7 @@ Resume the dataset.
 After transformations are applied and packer has run:
 
 1. Check `packer` bucket in MinIO for new `.parquet` files
-2. Query the data on bytefreezer.com
+2. Query the data via Connector UI (`http://<your-host>:8090`)
 3. Confirm transformed fields are in the parquet output
 
 **Verify:** Parquet files contain transformed data.
@@ -460,7 +460,7 @@ You should see `bytefreezer` in the list.
 Start Claude Code and run a quick smoke test to confirm the MCP server is reachable and your API key works:
 
 ```
-Check the ByteFreezer health, list all accounts, and show the health summary.
+Use bf_health_check, bf_list_accounts, and bf_health_summary to verify MCP connectivity.
 ```
 
 **Expected output:**
@@ -489,14 +489,13 @@ Your Workstation                    Remote
 +------------------+                                piper, packer, minio)
 ```
 
-Tell Claude what you want. Replace `testhost` with your actual hostname or IP address so Claude knows where to deploy:
+Tell Claude what you want. Replace `<your-host>` with your actual hostname or IP address so Claude knows where to deploy:
 
 ```
-Deploy a full on-prem ByteFreezer stack with Docker Compose on <your-host> via SSH.
-Create a tenant "demo" and a syslog dataset on port 5514 with testing=true
-and local_storage=true. Include MinIO for storage. After everything is running,
-start fakedata and verify data flows all the way to parquet using the connector
-to query the data.
+Use bf_runbook name=onprem-full-docker-compose to deploy a full on-prem ByteFreezer
+stack on <your-host>. Create a tenant "demo" with a syslog dataset on port 5514,
+testing=true, and local_storage=true. After everything is running, start fakedata
+and verify data flows all the way to parquet.
 ```
 
 > **Example:** If your host is `192.168.1.50`, say "...on 192.168.1.50 via SSH."
@@ -515,7 +514,8 @@ to query the data.
 Ask Claude to check the full pipeline:
 
 ```
-Check all service health, show dataset statistics, and list parquet files.
+Use bf_health_summary and bf_account_services to check all service health.
+Then use bf_dataset_statistics and bf_dataset_parquet_files to verify data flow.
 ```
 
 | Check | What Claude does |
@@ -529,21 +529,22 @@ Check all service health, show dataset statistics, and list parquet files.
 ### Transformations
 
 ```
-Show me the schema of my dataset, then create a transformation to
-rename source_ip to src, add a field environment="docker-test",
-and filter out events where action is "heartbeat".
-Test it first, then activate it.
+Use bf_transformation_schema to show me the schema of my dataset,
+then use bf_test_transformation to test a transformation that renames source_ip
+to src, adds a field environment="docker-test", and filters out events where
+action is "heartbeat". If it looks good, use bf_activate_transformation to deploy it.
 ```
 
 ```
-Show me what filters are available in the transformation catalog.
+Use bf_filter_catalog to show me what filters are available.
 ```
 
 ### Kill Switch
 
 ```
-Pause the dataset, wait 30 seconds, then resume it. Show me the proxy
-config before and after to confirm the kill switch works.
+Use bf_update_dataset to pause the dataset, then use bf_get_proxy_config to confirm
+the proxy dropped it. After 30 seconds, use bf_update_dataset to resume it and
+bf_get_proxy_config again to confirm it's back.
 ```
 
 ### Query Your Data
@@ -551,21 +552,24 @@ config before and after to confirm the kill switch works.
 Parquet files are in MinIO on testhost. Use the [example query project](https://github.com/bytefreezer/query-example) or ask Claude:
 
 ```
-Show me how to query the parquet files in my MinIO on testhost.
+Use bf_dataset_parquet_files to list my parquet files, then show me how to
+query them in my on-prem MinIO.
 ```
 
 ### What Else Can Claude Do?
 
-| Ask Claude to... | Tools it uses |
+| Ask Claude to... | MCP tool to mention |
 |---|---|
-| "Add a transformation to rename source_ip to src" | `bf_activate_transformation` |
-| "Show me the schema of my dataset" | `bf_transformation_schema` |
-| "Test this transformation config before deploying" | `bf_test_transformation` |
-| "Check which services are healthy" | `bf_health_status`, `bf_health_summary` |
-| "List my parquet files" | `bf_dataset_parquet_files` |
-| "Pause the dataset" | `bf_update_dataset` |
-| "Show me what filters are available" | `bf_filter_catalog` |
-| "Generate a systemd install script for bare metal" | `bf_generate_systemd` |
+| Deploy full on-prem stack | `bf_runbook name=onprem-full-docker-compose` |
+| Remove on-prem deployment | `bf_runbook name=onprem-cleanup` |
+| Show dataset schema | `bf_transformation_schema` |
+| Test a transformation | `bf_test_transformation` |
+| Activate a transformation | `bf_activate_transformation` |
+| Check service health | `bf_health_summary`, `bf_account_services` |
+| List parquet files | `bf_dataset_parquet_files` |
+| Pause/resume a dataset | `bf_update_dataset` |
+| Show available filters | `bf_filter_catalog` |
+| Generate systemd install script | `bf_generate_systemd` |
 
 ---
 
@@ -886,18 +890,22 @@ The control plane (bytefreezer.com) only handles configuration, health monitorin
 
 ## Cleanup
 
-### Stop the stack
+### With Claude + MCP (recommended)
 
-```bash
-cd installer/docker/quick-start  # or wherever you set up
-docker compose down -v
+```
+Use bf_runbook name=onprem-cleanup to remove my on-prem deployment from <your-host>.
 ```
 
-The `-v` flag removes all volumes (MinIO data, spool directories).
+This runs the full cleanup runbook: stops all containers (proxy, receiver, piper, packer, minio), removes volumes and files, deletes datasets/tenants/service registrations from the control plane. The account and its API keys are preserved. No S3 cleanup needed — on-prem data lives in the local MinIO volume which is destroyed with `docker compose down -v`.
 
-### Remove test account (optional)
+### Manual cleanup
 
-On bytefreezer.com, delete the `test-onprem-docker` account.
+```bash
+cd ~/bytefreezer-onprem  # or wherever you set up
+docker compose --profile with-minio --profile fakedata down -v
+```
+
+The `-v` flag removes all volumes (MinIO data, spool directories). You must also clean up control plane resources (tenants, datasets, service registrations) separately using MCP tools or the dashboard.
 
 ---
 

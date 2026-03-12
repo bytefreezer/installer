@@ -500,7 +500,7 @@ You should see `bytefreezer` in the list.
 Start Claude Code and run a quick smoke test to confirm the MCP server is reachable and your API key works:
 
 ```
-Check the ByteFreezer health, list all accounts, and show the health summary.
+Use bf_health_check, bf_list_accounts, and bf_health_summary to verify MCP connectivity.
 ```
 
 **Expected output:**
@@ -529,13 +529,12 @@ Your Workstation                    Remote
 +------------------+
 ```
 
-Tell Claude what you want. Replace `testhost` with your actual hostname or IP address so Claude knows where to deploy:
+Tell Claude what you want. Replace `<your-host>` with your actual hostname or IP address so Claude knows where to deploy:
 
 ```
-I want to try ByteFreezer managed. Create a tenant "demo" with a syslog
-dataset on port 5514, then generate a docker-compose setup for the proxy
-and deploy it on <your-host> via SSH. After it's running, assign the dataset
-to the proxy and send some test data with fakedata to verify the pipeline works.
+Use bf_runbook name=proxy-managed-docker-compose to deploy a managed proxy
+on <your-host>. Create a tenant "demo" with a syslog dataset on port 5514.
+After it's running, start fakedata and verify the pipeline works.
 ```
 
 > **Example:** If your host is `192.168.1.50`, say "...on 192.168.1.50 via SSH."
@@ -556,7 +555,8 @@ to the proxy and send some test data with fakedata to verify the pipeline works.
 Ask Claude to check the pipeline:
 
 ```
-Check my deployment health and show me the dataset statistics.
+Use bf_health_summary and bf_dataset_statistics to check my deployment health
+and show me the dataset statistics.
 ```
 
 | Check | What Claude does |
@@ -570,9 +570,10 @@ Check my deployment health and show me the dataset statistics.
 ### Transformations
 
 ```
-Show me the schema of my syslog-test dataset, then add a transformation
-to rename source_ip to src and add a field environment="test".
-Test it first, then activate it.
+Use bf_transformation_schema to show me the schema of my syslog-test dataset,
+then use bf_test_transformation to test a transformation that renames source_ip
+to src and adds a field environment="test". If it looks good, use
+bf_activate_transformation to deploy it.
 ```
 
 Claude runs:
@@ -583,22 +584,23 @@ Claude runs:
 ### Kill Switch
 
 ```
-Pause my syslog-test dataset, then check proxy config to confirm it stopped.
-After 30 seconds, resume it.
+Use bf_update_dataset to pause my syslog-test dataset, then use bf_get_proxy_config
+to confirm the proxy dropped it. After 30 seconds, use bf_update_dataset to resume it.
 ```
-
-Claude uses `bf_update_dataset` to toggle status, and `bf_get_proxy_config` to confirm the proxy dropped the dataset from its active config.
 
 ### What Else Can Claude Do?
 
-| Ask Claude to... | Tools it uses |
+| Ask Claude to... | MCP tool to mention |
 |---|---|
-| "Show me the schema of my dataset" | `bf_transformation_schema` |
-| "Test this transformation config before deploying" | `bf_test_transformation` |
-| "Check which services are healthy" | `bf_health_status`, `bf_health_summary` |
-| "List my parquet files" | `bf_dataset_parquet_files` |
-| "Pause the dataset" | `bf_update_dataset` |
-| "Show me what filters are available" | `bf_filter_catalog` |
+| Deploy managed proxy | `bf_runbook name=proxy-managed-docker-compose` |
+| Remove managed deployment | `bf_runbook name=managed-cleanup` |
+| Show dataset schema | `bf_transformation_schema` |
+| Test a transformation | `bf_test_transformation` |
+| Activate a transformation | `bf_activate_transformation` |
+| Check service health | `bf_health_summary`, `bf_account_services` |
+| List parquet files | `bf_dataset_parquet_files` |
+| Pause/resume a dataset | `bf_update_dataset` |
+| Show available filters | `bf_filter_catalog` |
 
 ---
 
@@ -828,16 +830,22 @@ The control plane (bytefreezer.com) only handles configuration, health monitorin
 
 ## Cleanup
 
-### Stop everything
+### With Claude + MCP (recommended)
+
+```
+Use bf_runbook name=managed-cleanup to remove my managed deployment from <your-host>.
+```
+
+This runs the full cleanup runbook: stops containers, removes files, deletes datasets/tenants/service registrations from the control plane, and cleans S3 data on bytefreezer.com. The account and its API keys are preserved.
+
+### Manual cleanup
 
 ```bash
 cd ~/bytefreezer-proxy
 docker compose down -v
 ```
 
-### Remove test account (optional)
-
-On bytefreezer.com, delete the `test-managed` account.
+This only stops containers and removes volumes. You must also clean up control plane resources (tenants, datasets, service registrations) and S3 data on bytefreezer.com separately.
 
 ---
 
