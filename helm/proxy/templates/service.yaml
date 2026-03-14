@@ -27,7 +27,7 @@ spec:
   selector:
     {{- include "proxy.selectorLabels" . | nindent 4 }}
 ---
-{{- if and .Values.udp.enabled .Values.udp.ports }}
+{{- if and .Values.udp.enabled .Values.udp.ports (not .Values.hostNetwork) }}
 # UDP Service (data ingestion)
 apiVersion: v1
 kind: Service

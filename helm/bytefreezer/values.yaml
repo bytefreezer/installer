@@ -26,8 +26,8 @@ s3:
   buckets:
     intake: "intake"   # receiver writes, piper reads
     piper: "piper"     # piper writes, packer reads
+    packer: "packer"   # packer writes parquet, connector reads
     geoip: "geoip"     # GeoIP database files
-    # Note: packer outputs to per-tenant destinations from Control API
 
 # Optional MinIO Deployment
 # Enable this if you don't have external S3/MinIO storage
@@ -67,6 +67,8 @@ controlService:
   enabled: true
   url: ""  # e.g., https://api.bytefreezer.com
   apiKey: ""
+  # Account ID (required for on_prem deployments)
+  accountId: ""
   # Existing secret containing API key
   existingSecret: ""
   timeoutSeconds: 30
@@ -148,7 +150,7 @@ receiver:
   enabled: true
   replicaCount: 1
   image:
-    repository: bytefreezer/receiver
+    repository: bytefreezer-receiver
     tag: ""
     pullPolicy: IfNotPresent
 
@@ -215,7 +217,7 @@ packer:
   enabled: true
   replicaCount: 1
   image:
-    repository: bytefreezer/packer
+    repository: bytefreezer-packer
     tag: ""
     pullPolicy: IfNotPresent
 
@@ -235,6 +237,9 @@ packer:
   housekeeping:
     enabled: true
     intervalSeconds: 300
+    # Testing interval (seconds) for datasets with testing=true
+    # Set to 15 for fast parquet output during testing
+    testingIntervalSeconds: 15
 
   resources:
     requests:
@@ -263,7 +268,7 @@ piper:
   logLevel: "info"
   pollInterval: "30s"
   image:
-    repository: bytefreezer/piper
+    repository: bytefreezer-piper
     tag: ""
     pullPolicy: IfNotPresent
 
@@ -323,7 +328,7 @@ connector:
   enabled: true
   replicaCount: 1
   image:
-    repository: bytefreezer/connector
+    repository: bytefreezer-connector
     tag: ""
     pullPolicy: IfNotPresent
 
