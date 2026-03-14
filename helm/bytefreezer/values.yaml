@@ -152,7 +152,7 @@ receiver:
   image:
     repository: bytefreezer-receiver
     tag: ""
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
 
   # Internal API service (health checks, metrics)
   service:
@@ -219,7 +219,7 @@ packer:
   image:
     repository: bytefreezer-packer
     tag: ""
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
 
   service:
     type: ClusterIP
@@ -270,7 +270,7 @@ piper:
   image:
     repository: bytefreezer-piper
     tag: ""
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
 
   service:
     type: ClusterIP
@@ -330,7 +330,7 @@ connector:
   image:
     repository: bytefreezer-connector
     tag: ""
-    pullPolicy: IfNotPresent
+    pullPolicy: Always
 
   service:
     type: ClusterIP
