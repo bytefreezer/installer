@@ -69,6 +69,9 @@ data:
       control_url: {{ .Values.controlService.url | quote }}
       timeout_seconds: {{ .Values.controlService.timeoutSeconds }}
       api_key: {{ .Values.controlService.apiKey | quote }}
+      {{- if .Values.controlService.accountId }}
+      account_id: {{ .Values.controlService.accountId | quote }}
+      {{- end }}
 
     monitoring:
       enabled: {{ .Values.monitoring.enabled }}

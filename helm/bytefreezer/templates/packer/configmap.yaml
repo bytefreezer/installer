@@ -15,7 +15,8 @@ data:
       api_port: {{ .Values.packer.service.apiPort }}
 
     bytefreezer:
-      spool_path: "/var/spool/packer"
+      spool_path: "/var/spool/bytefreezer-packer"
+      cache_path: "/var/cache/bytefreezer-packer"
 
     s3source:
       bucket_name: {{ .Values.s3.buckets.piper | quote }}
@@ -33,6 +34,9 @@ data:
       control_url: {{ .Values.controlService.url | quote }}
       timeout_seconds: {{ .Values.controlService.timeoutSeconds }}
       api_key: {{ .Values.controlService.apiKey | quote }}
+      {{- if .Values.controlService.accountId }}
+      account_id: {{ .Values.controlService.accountId | quote }}
+      {{- end }}
 
     parquet:
       max_file_size_mb: {{ .Values.packer.parquet.maxFileSizeMB }}
@@ -45,6 +49,14 @@ data:
     housekeeping:
       enabled: {{ .Values.packer.housekeeping.enabled }}
       interval_seconds: {{ .Values.packer.housekeeping.intervalSeconds }}
+      testing_interval_seconds: {{ .Values.packer.housekeeping.testingIntervalSeconds | default 15 }}
+      cleanup:
+        enabled: true
+        processing_dir_max_age_hours: 2
+        orphaned_files_max_age_hours: 24
+        lock_cleanup:
+          enabled: true
+          stale_threshold_minutes: 5
 
     otel:
       enabled: {{ .Values.monitoring.enabled }}

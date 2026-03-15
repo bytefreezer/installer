@@ -779,33 +779,37 @@ Your Workstation                    Remote
 Tell Claude what you want:
 
 ```
-Use bf_runbook name=onprem-full-docker-compose to deploy ByteFreezer to my
-Kubernetes cluster with Helm. Create a tenant "demo" and a syslog dataset
-on port 5514. Use bundled MinIO. Generate the Helm values, install the chart,
-deploy fakedata, and verify parquet output.
+Use bf_runbook name=onprem-full-k8s to deploy a full on-prem ByteFreezer stack
+to my Kubernetes cluster with Helm. Create a tenant "demo" and a syslog dataset
+on port 5514 with testing=true and local_storage=true. Use bundled MinIO.
+Deploy proxy in-cluster, start fakedata, and verify parquet output.
 ```
 
 **What Claude does behind the scenes:**
 
-1. `bf_create_tenant` and `bf_create_dataset`
-2. `bf_generate_helm_values` with `scenario=full` -- generates values.yaml
-3. Writes values.yaml locally, runs `helm install`
-4. Monitors pods with `kubectl get pods`, waits for healthy
-5. `bf_account_services` -- verifies all services registered
-6. Deploys fakedata pod, assigns dataset to proxy
-7. Verifies parquet output
+1. `bf_whoami` — discovers account context
+2. `bf_create_tenant` and `bf_create_dataset` — with full source+destination config
+3. `bf_update_dataset` — enables testing mode
+4. `bf_generate_helm_values` with `scenario=full` — generates values.yaml
+5. Writes values.yaml, runs `helm install` for processing stack + proxy
+6. Monitors pods with `kubectl get pods`, waits for Running/Ready
+7. `bf_account_services` — verifies all services registered
+8. Assigns dataset to proxy, deploys fakedata pod
+9. Verifies parquet output via kubectl exec into MinIO pod
+10. Runs connector batch query to confirm data is queryable
 
 ### Option B: Proxy on Edge Host, Stack in Kubernetes
 
 ```
-Use bf_runbook name=onprem-full-docker-compose to deploy the ByteFreezer processing
-stack (receiver, piper, packer, minio) to my Kubernetes cluster with Helm, and
-the proxy separately on <your-host> via SSH with Docker Compose. Create a tenant
-"demo" and a syslog dataset on port 5514. Wire the proxy to the receiver in
-Kubernetes. Start fakedata and verify parquet output.
+Use bf_runbook name=onprem-full-k8s to deploy the ByteFreezer processing stack
+(receiver, piper, packer, connector, minio) to my Kubernetes cluster with Helm,
+and the proxy separately on <your-host> via Docker Compose. Create a tenant "demo"
+and a syslog dataset on port 5514 with testing=true and local_storage=true. Wire
+the proxy to the receiver LoadBalancer in Kubernetes. Start fakedata on <your-host>
+and verify parquet output.
 ```
 
-Claude uses `bf_generate_helm_values` for the cluster stack and `bf_generate_docker_compose` with `scenario=proxy` for the edge proxy, wiring the receiver URL from the Kubernetes LoadBalancer IP. It SSHs into testhost to deploy the proxy.
+Claude uses `bf_generate_helm_values` for the cluster stack and `bf_generate_docker_compose` with `scenario=proxy` for the edge proxy, wiring the receiver URL from the Kubernetes LoadBalancer IP. It SSHs into the edge host to deploy the proxy.
 
 ## Verify with Claude
 
@@ -852,8 +856,10 @@ query them in my Kubernetes MinIO.
 
 | Ask Claude to... | MCP tool to mention |
 |---|---|
-| Deploy full stack (K8s or Docker) | `bf_runbook name=onprem-full-docker-compose` |
-| Remove on-prem deployment | `bf_runbook name=onprem-cleanup` |
+| Deploy full stack to Kubernetes | `bf_runbook name=onprem-full-k8s` |
+| Deploy full stack via Docker Compose | `bf_runbook name=onprem-full-docker-compose` |
+| Remove Kubernetes deployment | `bf_runbook name=onprem-k8s-cleanup` |
+| Remove Docker Compose deployment | `bf_runbook name=onprem-cleanup` |
 | Show dataset schema | `bf_transformation_schema` |
 | Test a transformation | `bf_test_transformation` |
 | Activate a transformation | `bf_activate_transformation` |
@@ -1163,8 +1169,8 @@ The control plane (bytefreezer.com) only handles configuration, health monitorin
 ### With Claude + MCP (recommended)
 
 ```
-Use bf_runbook name=onprem-cleanup to remove my on-prem ByteFreezer deployment.
-Kubernetes namespace is "bytefreezer". Proxy is on <your-host> (if Version B).
+Use bf_runbook name=onprem-k8s-cleanup to remove my on-prem ByteFreezer deployment
+from Kubernetes. Namespace is "bytefreezer". Proxy is on <your-host> (if Version B).
 ```
 
 This runs the full cleanup runbook: uninstalls Helm releases, deletes PVCs/namespace, stops proxy on edge host (if applicable), and deletes datasets/tenants/service registrations from the control plane. The account and its API keys are preserved.

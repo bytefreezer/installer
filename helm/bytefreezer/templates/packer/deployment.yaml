@@ -79,11 +79,15 @@ spec:
               mountPath: /etc/bytefreezer
             - name: spool
               mountPath: /var/spool/bytefreezer-packer
+            - name: cache
+              mountPath: /var/cache/bytefreezer-packer
       volumes:
         - name: config
           configMap:
             name: {{ include "bytefreezer.packer.fullname" . }}
         - name: spool
+          emptyDir: {}
+        - name: cache
           emptyDir: {}
       {{- with .Values.packer.nodeSelector }}
       nodeSelector:
