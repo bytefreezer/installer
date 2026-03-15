@@ -84,7 +84,7 @@ services:
 
   # Piper - processes raw data, applies transformations
   piper:
-    image: ${IMAGE_REGISTRY:-ghcr.io/bytefreezer}/piper:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io/bytefreezer}/bytefreezer-piper:${IMAGE_TAG:-latest}
     container_name: bf-piper
     depends_on:
       minio-init:
@@ -103,7 +103,7 @@ services:
       CONTROL_URL: ${CONTROL_URL:-https://api.bytefreezer.com}
       ACCOUNT_ID: ${ACCOUNT_ID:-}
     volumes:
-      - ./config/piper.yaml:/etc/piper/config.yaml:ro
+      - ./config/piper.yaml:/etc/bytefreezer-piper/config.yaml:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8082/api/v1/health"]
       interval: 30s
@@ -115,7 +115,7 @@ services:
 
   # Packer - converts processed data to Parquet
   packer:
-    image: ${IMAGE_REGISTRY:-ghcr.io/bytefreezer}/packer:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io/bytefreezer}/bytefreezer-packer:${IMAGE_TAG:-latest}
     container_name: bf-packer
     depends_on:
       minio-init:
@@ -130,7 +130,7 @@ services:
       CONTROL_URL: ${CONTROL_URL:-https://api.bytefreezer.com}
       ACCOUNT_ID: ${ACCOUNT_ID:-}
     volumes:
-      - ./config/packer.yaml:/etc/packer/config.yaml:ro
+      - ./config/packer.yaml:/etc/bytefreezer-packer/config.yaml:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8083/api/v1/health"]
       interval: 30s

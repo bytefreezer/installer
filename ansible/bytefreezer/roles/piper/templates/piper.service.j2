@@ -14,7 +14,7 @@ ExecStartPre=-/usr/bin/docker rm bytefreezer-piper
 ExecStart=/usr/bin/docker run --rm \
   --name bytefreezer-piper \
   --network host \
-  -v {{ bytefreezer_config_dir }}/piper/config.yaml:/etc/bytefreezer/config.yaml:ro \
+  -v {{ bytefreezer_config_dir }}/piper/config.yaml:/etc/bytefreezer-piper/config.yaml:ro \
   -e PIPER_S3_SOURCE_ACCESS_KEY={{ vault_s3_access_key | default(vault_minio_root_password | default('minioadmin')) }} \
   -e PIPER_S3_SOURCE_SECRET_KEY={{ vault_s3_secret_key | default(vault_minio_root_password | default('minioadmin')) }} \
   -e PIPER_S3_DESTINATION_ACCESS_KEY={{ vault_s3_access_key | default(vault_minio_root_password | default('minioadmin')) }} \

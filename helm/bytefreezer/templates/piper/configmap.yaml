@@ -8,7 +8,7 @@ metadata:
 data:
   config.yaml: |
     app:
-      name: "piper"
+      name: "bytefreezer-piper"
       version: {{ .Chart.AppVersion | quote }}
       log_level: {{ .Values.piper.logLevel | quote }}
       deployment_type: {{ .Values.global.deploymentType | quote }}
@@ -82,7 +82,7 @@ data:
       push_interval_seconds: {{ .Values.monitoring.pushIntervalSeconds }}
       metrics_host: "0.0.0.0"
       metrics_port: 9092
-      service_name: "piper"
+      service_name: "bytefreezer-piper"
 
     housekeeping:
       enabled: {{ .Values.piper.housekeeping.enabled }}

@@ -150,7 +150,7 @@ receiver:
   enabled: true
   replicaCount: 1
   image:
-    repository: bytefreezer-receiver
+    repository: ghcr.io/bytefreezer/bytefreezer-receiver
     tag: ""
     pullPolicy: Always
 
@@ -217,7 +217,7 @@ packer:
   enabled: true
   replicaCount: 1
   image:
-    repository: bytefreezer-packer
+    repository: ghcr.io/bytefreezer/bytefreezer-packer
     tag: ""
     pullPolicy: Always
 
@@ -268,7 +268,7 @@ piper:
   logLevel: "info"
   pollInterval: "30s"
   image:
-    repository: bytefreezer-piper
+    repository: ghcr.io/bytefreezer/bytefreezer-piper
     tag: ""
     pullPolicy: Always
 
@@ -328,7 +328,7 @@ connector:
   enabled: true
   replicaCount: 1
   image:
-    repository: bytefreezer-connector
+    repository: ghcr.io/bytefreezer/bytefreezer-connector
     tag: ""
     pullPolicy: Always
 

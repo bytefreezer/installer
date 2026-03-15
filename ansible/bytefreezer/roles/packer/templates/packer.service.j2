@@ -14,7 +14,7 @@ ExecStartPre=-/usr/bin/docker rm bytefreezer-packer
 ExecStart=/usr/bin/docker run --rm \
   --name bytefreezer-packer \
   --network host \
-  -v {{ bytefreezer_config_dir }}/packer/config.yaml:/etc/bytefreezer/config.yaml:ro \
+  -v {{ bytefreezer_config_dir }}/packer/config.yaml:/etc/bytefreezer-packer/config.yaml:ro \
   -e BYTEFREEZER_S3SOURCE_ACCESS_KEY={{ vault_s3_access_key | default(vault_minio_root_password | default('minioadmin')) }} \
   -e BYTEFREEZER_S3SOURCE_SECRET_KEY={{ vault_s3_secret_key | default(vault_minio_root_password | default('minioadmin')) }} \
   -e BYTEFREEZER_CONTROL_SERVICE_API_KEY={{ vault_control_service_api_key }} \

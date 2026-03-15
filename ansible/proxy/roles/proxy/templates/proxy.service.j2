@@ -14,7 +14,7 @@ ExecStartPre=-/usr/bin/docker rm bytefreezer-proxy
 ExecStart=/usr/bin/docker run --rm \
   --name bytefreezer-proxy \
   --network host \
-  -v {{ bytefreezer_config_dir }}/proxy/config.yaml:/etc/bytefreezer/config.yaml:ro \
+  -v {{ bytefreezer_config_dir }}/proxy/config.yaml:/etc/bytefreezer-proxy/config.yaml:ro \
   -v {{ bytefreezer_base_dir }}/cache:/opt/bytefreezer/cache \
   -e PROXY_CONTROL_SERVICE_API_KEY={{ control_service_bearer_token }} \
   {{ image_registry }}/bytefreezer-proxy:{{ image_tag }}

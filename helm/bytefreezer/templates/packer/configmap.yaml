@@ -8,7 +8,7 @@ metadata:
 data:
   config.yaml: |
     app:
-      name: "packer"
+      name: "bytefreezer-packer"
       version: {{ .Chart.AppVersion | quote }}
 
     server:
@@ -70,7 +70,7 @@ data:
       otlp_endpoint: {{ include "bytefreezer.metricsEndpoint" . | quote }}
       {{- end }}
       push_interval_seconds: {{ .Values.monitoring.pushIntervalSeconds }}
-      service_name: "packer"
+      service_name: "bytefreezer-packer"
       metrics_host: "0.0.0.0"
       metrics_port: 9093
 
