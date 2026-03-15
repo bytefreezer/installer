@@ -42,9 +42,14 @@ data:
       max_file_size_mb: {{ .Values.packer.parquet.maxFileSizeMB }}
       timeout_seconds: {{ .Values.packer.parquet.timeoutSeconds }}
       compression: {{ .Values.packer.parquet.compression | quote }}
+      keep_source: false
       streaming_mode: {{ .Values.packer.parquet.streamingMode }}
       memory_buffer_mb: {{ .Values.packer.parquet.memoryBufferMB }}
       atomic_upload: true
+
+    uploadpool:
+      worker_count: 5
+      cleanup_source_files: true
 
     housekeeping:
       enabled: {{ .Values.packer.housekeeping.enabled }}

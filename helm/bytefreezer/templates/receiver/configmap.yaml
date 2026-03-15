@@ -15,7 +15,7 @@ data:
       api_port: {{ .Values.receiver.service.apiPort }}
 
     bytefreezer:
-      upload_worker_count: {{ .Values.receiver.uploadWorkerCount | default 5 }}
+      upload_worker_count: {{ .Values.receiver.uploadWorkerCount | default 10 }}
       spool_path: {{ .Values.receiver.spooling.directory | quote }}
 
     protocols:
@@ -37,12 +37,12 @@ data:
 
     housekeeping:
       enabled: true
-      interval_seconds: 60
+      interval_seconds: 30
 
     dlq:
       enabled: {{ if .Values.receiver.dlq }}{{ .Values.receiver.dlq.enabled | default true }}{{ else }}true{{ end }}
       directory: {{ .Values.receiver.spooling.directory | quote }}
-      retry_attempts: {{ if .Values.receiver.dlq }}{{ .Values.receiver.dlq.retryAttempts | default 3 }}{{ else }}3{{ end }}
+      retry_attempts: {{ if .Values.receiver.dlq }}{{ .Values.receiver.dlq.retryAttempts | default 4 }}{{ else }}4{{ end }}
       retry_interval_seconds: {{ if .Values.receiver.dlq }}{{ .Values.receiver.dlq.retryIntervalSeconds | default 60 }}{{ else }}60{{ end }}
       cleanup_interval_seconds: {{ if .Values.receiver.dlq }}{{ .Values.receiver.dlq.cleanupIntervalSeconds | default 300 }}{{ else }}300{{ end }}
       max_age_days: {{ if .Values.receiver.dlq }}{{ .Values.receiver.dlq.maxAgeDays | default 7 }}{{ else }}7{{ end }}
