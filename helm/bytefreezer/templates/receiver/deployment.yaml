@@ -24,6 +24,10 @@ spec:
       serviceAccountName: {{ include "bytefreezer.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with (include "bytefreezer.waitForMinio" .) }}
+      initContainers:
+        {{- . | nindent 8 }}
+      {{- end }}
       containers:
         - name: receiver
           securityContext:

@@ -210,3 +210,25 @@ app.kubernetes.io/component: connector
 {{ include "bytefreezer.selectorLabels" . }}
 app.kubernetes.io/component: connector
 {{- end }}
+
+{{/*
+Init container that waits for MinIO to be ready and buckets to exist.
+Only rendered when bundled MinIO is enabled (.Values.minio.enabled).
+Usage: {{ include "bytefreezer.waitForMinio" . | nindent 8 }}
+*/}}
+{{- define "bytefreezer.waitForMinio" -}}
+{{- if .Values.minio.enabled }}
+- name: wait-for-minio
+  image: busybox:1.36
+  command:
+    - /bin/sh
+    - -c
+    - |
+      echo "Waiting for MinIO at {{ include "bytefreezer.fullname" . }}-minio:{{ .Values.minio.service.port }}..."
+      until wget -qO- http://{{ include "bytefreezer.fullname" . }}-minio:{{ .Values.minio.service.port }}/minio/health/ready >/dev/null 2>&1; do
+        echo "MinIO not ready, retrying in 3s..."
+        sleep 3
+      done
+      echo "MinIO is ready"
+{{- end }}
+{{- end }}

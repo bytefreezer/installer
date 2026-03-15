@@ -24,6 +24,10 @@ spec:
       serviceAccountName: {{ include "bytefreezer.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with (include "bytefreezer.waitForMinio" .) }}
+      initContainers:
+        {{- . | nindent 8 }}
+      {{- end }}
       containers:
         - name: connector
           securityContext:
@@ -62,7 +66,8 @@ spec:
             {{- toYaml .Values.connector.resources | nindent 12 }}
           volumeMounts:
             - name: config
-              mountPath: /app
+              mountPath: /app/config.yaml
+              subPath: config.yaml
       volumes:
         - name: config
           configMap:
