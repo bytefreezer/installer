@@ -214,21 +214,41 @@ app.kubernetes.io/component: connector
 {{/*
 Init container that waits for MinIO to be ready and buckets to exist.
 Only rendered when bundled MinIO is enabled (.Values.minio.enabled).
+Waits for both MinIO health AND bucket creation (by the minio-setup hook job).
 Usage: {{ include "bytefreezer.waitForMinio" . | nindent 8 }}
 */}}
 {{- define "bytefreezer.waitForMinio" -}}
 {{- if .Values.minio.enabled }}
 - name: wait-for-minio
-  image: busybox:1.36
+  image: minio/mc:latest
   command:
     - /bin/sh
     - -c
     - |
-      echo "Waiting for MinIO at {{ include "bytefreezer.fullname" . }}-minio:{{ .Values.minio.service.port }}..."
-      until wget -qO- http://{{ include "bytefreezer.fullname" . }}-minio:{{ .Values.minio.service.port }}/minio/health/ready >/dev/null 2>&1; do
+      MINIO_HOST="{{ include "bytefreezer.fullname" . }}-minio:{{ .Values.minio.service.port }}"
+      echo "Waiting for MinIO at ${MINIO_HOST}..."
+      until mc alias set myminio http://${MINIO_HOST} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD} >/dev/null 2>&1; do
         echo "MinIO not ready, retrying in 3s..."
         sleep 3
       done
-      echo "MinIO is ready"
+      echo "MinIO is ready, waiting for buckets (minio-setup job)..."
+      until mc ls myminio/{{ .Values.s3.buckets.intake }} >/dev/null 2>&1 && \
+            mc ls myminio/{{ .Values.s3.buckets.piper }} >/dev/null 2>&1 && \
+            mc ls myminio/{{ .Values.s3.buckets.packer }} >/dev/null 2>&1; do
+        echo "Buckets not created yet, retrying in 3s..."
+        sleep 3
+      done
+      echo "MinIO is ready and all buckets exist"
+  env:
+    - name: MINIO_ROOT_USER
+      valueFrom:
+        secretKeyRef:
+          name: {{ include "bytefreezer.fullname" . }}-minio
+          key: rootUser
+    - name: MINIO_ROOT_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: {{ include "bytefreezer.fullname" . }}-minio
+          key: rootPassword
 {{- end }}
 {{- end }}
