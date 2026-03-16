@@ -20,7 +20,7 @@ control_service:
 parquet:
   max_file_size_mb: 128
   timeout_seconds: 300
-  compression: "snappy"
+  compression: "zstd"
   streaming_mode: true
   memory_buffer_mb: 64
   atomic_upload: true

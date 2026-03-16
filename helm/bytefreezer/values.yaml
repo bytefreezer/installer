@@ -229,7 +229,7 @@ packer:
   parquet:
     maxFileSizeMB: 128
     timeoutSeconds: 300
-    compression: "snappy"
+    compression: "zstd"
     streamingMode: true
     memoryBufferMB: 64
 

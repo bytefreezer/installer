@@ -20,7 +20,7 @@ s3_destination:
 parquet:
   max_file_size_mb: {{ packer_parquet_max_size_mb }}
   timeout_seconds: 300
-  compression: snappy
+  compression: zstd
 
 control_service:
   enabled: true
