@@ -45,6 +45,7 @@ data:
       keep_source: false
       streaming_mode: {{ .Values.packer.parquet.streamingMode }}
       memory_buffer_mb: {{ .Values.packer.parquet.memoryBufferMB }}
+      checkpoint_records: {{ .Values.packer.parquet.checkpointRecords | default 100000 }}
       atomic_upload: true
 
     uploadpool:

@@ -23,6 +23,7 @@ parquet:
   compression: "zstd"
   streaming_mode: true
   memory_buffer_mb: 64
+  checkpoint_records: 100000
   atomic_upload: true
 
 housekeeping:

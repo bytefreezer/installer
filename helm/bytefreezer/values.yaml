@@ -232,6 +232,7 @@ packer:
     compression: "zstd"
     streamingMode: true
     memoryBufferMB: 64
+    checkpointRecords: 100000
 
   # Housekeeping
   housekeeping:
