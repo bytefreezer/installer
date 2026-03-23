@@ -5,8 +5,15 @@ metadata:
   name: {{ include "bytefreezer.connector.fullname" . }}
   labels:
     {{- include "bytefreezer.connector.labels" . | nindent 4 }}
+  {{- with .Values.connector.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
   type: {{ .Values.connector.service.type }}
+  {{- if and (eq .Values.connector.service.type "LoadBalancer") .Values.connector.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.connector.service.loadBalancerIP }}
+  {{- end }}
   ports:
     - port: {{ .Values.connector.service.apiPort }}
       targetPort: api

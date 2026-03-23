@@ -334,8 +334,11 @@ connector:
     pullPolicy: Always
 
   service:
-    type: ClusterIP
+    type: LoadBalancer
     apiPort: 8090
+    # MetalLB Configuration (for k3s/bare-metal with MetalLB)
+    loadBalancerIP: ""
+    annotations: {}
 
   # Schedule settings for watch mode
   schedule:
