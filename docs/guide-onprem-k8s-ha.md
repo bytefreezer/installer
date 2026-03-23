@@ -2,6 +2,30 @@
 
 Deploy the ByteFreezer processing stack in high-availability mode with 3x replicas for receiver, piper, and packer. Connector and proxy remain single-instance. Control plane runs on bytefreezer.com for coordination.
 
+## Contents
+
+- [What's Different](#whats-different-from-the-standard-deployment)
+- [What You Need](#what-you-need)
+- [Architecture](#architecture)
+- [How HA Works for Each Component](#how-ha-works-for-each-component)
+- [Deployment](#deployment)
+  - [Phase 1: Account Setup](#phase-1-account-setup)
+  - [Phase 2: Prepare External S3](#phase-2-prepare-external-s3)
+  - [Phase 3: Create HA Values File](#phase-3-create-ha-values-file)
+  - [Phase 4: Install](#phase-4-install)
+  - [Phase 5: Verify HA Deployment](#phase-5-verify-ha-deployment)
+  - [Phase 6: Deploy Proxy](#phase-6-deploy-proxy)
+  - [Phase 7: Create Tenant, Dataset, and Test](#phase-7-create-tenant-dataset-and-test)
+- [HA Verification Tests](#ha-verification-tests)
+- [Anti-Affinity Modes](#anti-affinity-modes)
+- [Resource Sizing](#resource-sizing)
+- [Scaling Beyond 3](#scaling-beyond-3)
+- [Monitoring HA Health](#monitoring-ha-health)
+- [Cleanup](#cleanup)
+- [Troubleshooting](#troubleshooting)
+
+---
+
 **What's different from the standard deployment:**
 
 | Component | Standard | HA |
