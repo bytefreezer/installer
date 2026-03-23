@@ -646,7 +646,11 @@ kubectl logs -n bytefreezer -l app.kubernetes.io/component=packer --tail 20
 **Service Status page:**
 - All services Healthy
 
-**Connector UI** (`http://<your-host>:8090`):
+**Connector UI** (port-forward required for in-cluster connector):
+```bash
+kubectl port-forward -n bytefreezer svc/bytefreezer-connector 8090:8090
+```
+Then open `http://localhost:8090`:
 - Run query against `syslog-test` dataset
 - Returns rows with fakedata fields
 
