@@ -212,6 +212,30 @@ app.kubernetes.io/component: connector
 {{- end }}
 
 {{/*
+Pod anti-affinity helper — spreads replicas across nodes when podAntiAffinity is "soft" or "hard".
+Usage: {{ include "bytefreezer.podAntiAffinity" (dict "component" "receiver" "selectorLabels" (include "bytefreezer.receiver.selectorLabels" .) "antiAffinity" .Values.receiver.podAntiAffinity) }}
+*/}}
+{{- define "bytefreezer.podAntiAffinity" -}}
+{{- if eq .antiAffinity "hard" }}
+podAntiAffinity:
+  requiredDuringSchedulingIgnoredDuringExecution:
+    - labelSelector:
+        matchLabels:
+          {{- .selectorLabels | nindent 10 }}
+      topologyKey: kubernetes.io/hostname
+{{- else if eq .antiAffinity "soft" }}
+podAntiAffinity:
+  preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchLabels:
+            {{- .selectorLabels | nindent 12 }}
+        topologyKey: kubernetes.io/hostname
+{{- end }}
+{{- end }}
+
+{{/*
 Init container that waits for MinIO to be ready and buckets to exist.
 Only rendered when bundled MinIO is enabled (.Values.minio.enabled).
 Waits for both MinIO health AND bucket creation (by the minio-setup hook job).

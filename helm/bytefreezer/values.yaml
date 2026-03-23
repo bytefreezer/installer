@@ -200,6 +200,16 @@ receiver:
       cpu: 1000m
       memory: 1Gi
 
+  # Pod anti-affinity: "" (disabled), "soft" (preferred), "hard" (required)
+  # Spreads replicas across different nodes
+  podAntiAffinity: ""
+
+  # PodDisruptionBudget (only applies when replicaCount > 1)
+  podDisruptionBudget:
+    enabled: false
+    # minAvailable: 1
+    maxUnavailable: 1
+
   nodeSelector: {}
   tolerations: []
   affinity: {}
@@ -249,6 +259,13 @@ packer:
     limits:
       cpu: 2000m
       memory: 2Gi
+
+  # Pod anti-affinity: "" (disabled), "soft" (preferred), "hard" (required)
+  podAntiAffinity: ""
+
+  podDisruptionBudget:
+    enabled: false
+    maxUnavailable: 1
 
   nodeSelector: {}
   tolerations: []
@@ -311,6 +328,13 @@ piper:
     limits:
       cpu: 2000m
       memory: 2Gi
+
+  # Pod anti-affinity: "" (disabled), "soft" (preferred), "hard" (required)
+  podAntiAffinity: ""
+
+  podDisruptionBudget:
+    enabled: false
+    maxUnavailable: 1
 
   nodeSelector: {}
   tolerations: []

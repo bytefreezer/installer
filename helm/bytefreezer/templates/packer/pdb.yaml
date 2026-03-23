@@ -1,0 +1,21 @@
+{{- if and .Values.packer.enabled (gt (int .Values.packer.replicaCount) 1) }}
+{{- if .Values.packer.podDisruptionBudget }}
+{{- if .Values.packer.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "bytefreezer.packer.fullname" . }}
+  labels:
+    {{- include "bytefreezer.packer.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.packer.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.packer.podDisruptionBudget.minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ .Values.packer.podDisruptionBudget.maxUnavailable | default 1 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "bytefreezer.packer.selectorLabels" . | nindent 6 }}
+{{- end }}
+{{- end }}
+{{- end }}

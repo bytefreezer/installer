@@ -97,9 +97,12 @@ spec:
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.packer.affinity }}
+      {{- if .Values.packer.affinity }}
       affinity:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml .Values.packer.affinity | nindent 8 }}
+      {{- else if .Values.packer.podAntiAffinity }}
+      affinity:
+        {{- include "bytefreezer.podAntiAffinity" (dict "antiAffinity" .Values.packer.podAntiAffinity "selectorLabels" (include "bytefreezer.packer.selectorLabels" .)) | nindent 8 }}
       {{- end }}
       {{- with .Values.packer.tolerations }}
       tolerations:

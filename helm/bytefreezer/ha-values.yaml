@@ -1,0 +1,151 @@
+# ByteFreezer HA Values
+# 3x receiver, 3x piper, 3x packer — connector and proxy stay at 1
+#
+# Requirements:
+#   - 3+ worker nodes (for hard anti-affinity)
+#   - External S3 or separately managed MinIO cluster (bundled MinIO is single-instance)
+#   - MetalLB or cloud LoadBalancer for receiver webhook service
+#
+# Usage:
+#   helm install bytefreezer ./bytefreezer -n bytefreezer -f ha-values.yaml
+
+global:
+  deploymentType: "on_prem"
+
+# --- S3 Storage ---
+# HA deployments should use external S3 or a dedicated MinIO cluster.
+# The bundled MinIO is single-instance and is a single point of failure.
+minio:
+  enabled: false
+
+s3:
+  endpoint: "EXTERNAL_S3_ENDPOINT"   # e.g., "minio-ha.storage.svc:9000" or AWS S3
+  region: "us-east-1"
+  accessKey: "YOUR_S3_ACCESS_KEY"
+  secretKey: "YOUR_S3_SECRET_KEY"
+  useSSL: false
+  useIAMRole: false                  # set true for AWS IAM roles
+
+# --- Control Service ---
+controlService:
+  enabled: true
+  url: "https://api.bytefreezer.com"
+  apiKey: "YOUR_API_KEY"
+  accountId: "YOUR_ACCOUNT_ID"
+
+# --- Receiver (3 replicas) ---
+receiver:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: ghcr.io/bytefreezer/bytefreezer-receiver
+    tag: "latest"
+    pullPolicy: Always
+
+  webhookService:
+    enabled: true
+    type: LoadBalancer
+    port: 8080
+    annotations: {}
+
+  podAntiAffinity: "soft"        # "soft" = best-effort spread, "hard" = strict 1-per-node
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2              # at least 2 receivers always up during rolling updates
+
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+
+  healthReporting:
+    enabled: true
+    reportInterval: 30
+
+# --- Piper (3 replicas) ---
+# Each piper acquires file locks via control API before processing.
+# Multiple pipers safely process different files in parallel.
+piper:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: ghcr.io/bytefreezer/bytefreezer-piper
+    tag: "latest"
+    pullPolicy: Always
+
+  processing:
+    maxConcurrentJobs: 10
+    jobTimeoutSeconds: 600
+    retryAttempts: 3
+    retryBackoff: "exponential"
+    bufferSize: 1000
+
+  podAntiAffinity: "soft"
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 4000m
+      memory: 4Gi
+
+  healthReporting:
+    enabled: true
+    reportInterval: 30
+
+# --- Packer (3 replicas) ---
+# Each packer acquires dataset locks via control API.
+# HasJobForDataset dedup prevents duplicate scheduling.
+packer:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: ghcr.io/bytefreezer/bytefreezer-packer
+    tag: "latest"
+    pullPolicy: Always
+
+  housekeeping:
+    enabled: true
+    intervalSeconds: 300
+    testingIntervalSeconds: 15
+
+  podAntiAffinity: "soft"
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 4000m
+      memory: 4Gi
+
+  healthReporting:
+    enabled: true
+    reportInterval: 30
+
+# --- Connector (1 replica, read-only query service) ---
+connector:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ghcr.io/bytefreezer/bytefreezer-connector
+    tag: "latest"
+    pullPolicy: Always
+
+  service:
+    type: LoadBalancer
+    apiPort: 8090
+
+  healthReporting:
+    enabled: true
+    reportInterval: 30

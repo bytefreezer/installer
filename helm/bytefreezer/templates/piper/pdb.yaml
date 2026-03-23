@@ -1,0 +1,21 @@
+{{- if and .Values.piper.enabled (gt (int .Values.piper.replicaCount) 1) }}
+{{- if .Values.piper.podDisruptionBudget }}
+{{- if .Values.piper.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "bytefreezer.piper.fullname" . }}
+  labels:
+    {{- include "bytefreezer.piper.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.piper.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.piper.podDisruptionBudget.minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ .Values.piper.podDisruptionBudget.maxUnavailable | default 1 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "bytefreezer.piper.selectorLabels" . | nindent 6 }}
+{{- end }}
+{{- end }}
+{{- end }}

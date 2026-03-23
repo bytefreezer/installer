@@ -1,0 +1,21 @@
+{{- if and .Values.receiver.enabled (gt (int .Values.receiver.replicaCount) 1) }}
+{{- if .Values.receiver.podDisruptionBudget }}
+{{- if .Values.receiver.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "bytefreezer.receiver.fullname" . }}
+  labels:
+    {{- include "bytefreezer.receiver.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.receiver.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.receiver.podDisruptionBudget.minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ .Values.receiver.podDisruptionBudget.maxUnavailable | default 1 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "bytefreezer.receiver.selectorLabels" . | nindent 6 }}
+{{- end }}
+{{- end }}
+{{- end }}
