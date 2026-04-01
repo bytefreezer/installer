@@ -6,7 +6,8 @@ Self-hosted deployment packages for ByteFreezer data processing pipeline.
 
 Skip the manual steps. Connect [Claude Code](https://docs.anthropic.com/en/docs/claude-code) to the ByteFreezer MCP server and describe your deployment in plain English — Claude creates accounts, generates configs, deploys services, and verifies the pipeline end to end.
 ```
-Make sure your claude code is running, register and get bytefreezer API key.
+Make sure your claude code is running, register and get [bytefreezer API key](https://bytefreezer.com/dashboard/api-keys).
+
 ```
 
 ```bash
