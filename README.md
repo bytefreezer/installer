@@ -22,21 +22,17 @@ Ask Claude Code to verify bytefreezer mcp
 
 > *"please see if bytefreezer mcp is accessible"*
 
-Then tell Claude what you want:
-
-> *"Deploy a full on-prem ByteFreezer stack with Docker Compose on this host. Create an account, tenant, and syslog dataset. Start fakedata and verify data flows to parquet."*
+Then read one of the guides below.
 
 Claude handles everything — account creation, config generation, deployment, dataset assignment, and verification. Works with Docker Compose, Kubernetes (Helm), systemd, or standalone binaries.
 
-**[Read the full guide](#deploy-with-claude--mcp)**
+Each deploy guide builds a bytefreezer demo. deploying demo data feed adn allowing you to see a data via UI Dashboard for managed deploy, or via connector component for on prem deploys.
 
 ---
 
-## Getting Started Guides
-
 | Guide | Description |
 |-------|-------------|
-| [Managed Quickstart](docs/guide-managed.md) | Proxy test only — deploy a single proxy, we handle the rest |
+| [Managed Quickstart](docs/guide-managed.md) | Proxy test only — deploy a single proxy, we handle the rest | 
 | [On-Prem: Docker Compose](docs/guide-onprem-docker.md) | Full stack on a single host, your data stays local |
 | [On-Prem: Kubernetes](docs/guide-onprem-k8s.md) | Full stack on K8s with Helm charts |
 | [Deploy with Claude + MCP](#deploy-with-claude--mcp) | AI-assisted deployment using Claude Code |
