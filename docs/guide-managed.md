@@ -2,11 +2,29 @@
 
 Deploy a single proxy on your host. Processing and storage run on bytefreezer.com -- you only install the proxy.
 
-**Objective:** End-to-end test on the managed test platform. Verify your proxy is working, data flows through the pipeline, and you can see and query parquet files directly on bytefreezer.com.
+**Time to complete:** ~10 minutes.
 
-**Time to complete:** 10-15 minutes (manual), 5-10 minutes (Claude + MCP).
+> **This is a demo deployment.** The managed path is the fastest way to see ByteFreezer in action and get familiar with the pipeline. For real workloads, deploy on-prem — your data stays on your infrastructure and you control the full stack. See the [On-Prem Docker Compose](guide-onprem-docker.md) or [On-Prem Kubernetes](guide-onprem-k8s.md) guides.
 
 > **Do not send sensitive or production data.** This is a shared test platform and is not secured for production use. Use fakedata or non-sensitive test logs only.
+
+## What This Guide Deploys
+
+This guide sets up a minimal pipeline to demonstrate ByteFreezer end to end:
+
+| Component | Where | What it does |
+|-----------|-------|-------------|
+| **Proxy** | Your host (Docker) | Collects syslog data and forwards to the managed receiver |
+| **Fakedata** | Your host (Docker) | Generates simulated syslog traffic so you have data flowing immediately |
+| **Receiver, Piper, Packer, MinIO** | bytefreezer.com | Process, transform, and compress your data into Parquet files |
+
+Once data flows through the pipeline (~2-3 minutes after starting fakedata), you can:
+
+- **View the dashboard** at [bytefreezer.com](https://bytefreezer.com) — service health, statistics, activity, and dataset status
+- **Query your data** on the Query page — run SQL against your Parquet files directly in the browser
+- **Apply transformations** — rename fields, filter records, enrich with GeoIP
+
+No infrastructure to manage. No storage to provision. Just deploy the proxy and start exploring.
 
 ## Contents
 

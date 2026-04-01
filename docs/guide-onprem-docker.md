@@ -2,11 +2,34 @@
 
 Deploy the complete ByteFreezer processing stack on a single host. Control plane runs on bytefreezer.com for coordination. Processing, storage, and proxy are all self-hosted -- your data stays on your host.
 
-**Objective:** End-to-end test of the full on-prem stack. Verify all services register, data flows from proxy through receiver/piper/packer, and parquet files land in your local MinIO. To query your parquet data, use the [example query project](https://github.com/bytefreezer/query-example) or build your own using AI and [ByteFreezer MCP](https://github.com/bytefreezer/mcp).
+**Time to complete:** ~10 minutes.
 
-**Time to complete:** 15-20 minutes (manual), 10-15 minutes (Claude + MCP).
+> **This is the recommended starting point for on-prem.** One host, one `docker compose up`, full pipeline. Your data never leaves your machine.
 
 > **Do not send sensitive or production data to bytefreezer.com.** The control plane on bytefreezer.com is a shared test platform. Your data stays on your host, but the control plane is not secured for production use.
+
+## What This Guide Deploys
+
+This guide sets up the complete ByteFreezer pipeline on a single Docker host:
+
+| Component | What it does |
+|-----------|-------------|
+| **Proxy** | Collects syslog data on your host |
+| **Receiver** | Receives data from proxy, writes raw batches to MinIO |
+| **Piper** | Transforms and processes raw data |
+| **Packer** | Compresses processed data into Parquet files |
+| **MinIO** | Local S3-compatible object storage (intake, piper, packer buckets) |
+| **Connector** | Query engine — run SQL against your Parquet files locally via DuckDB |
+| **Fakedata** | Generates simulated syslog traffic so you have data flowing immediately |
+
+Once data flows through the pipeline (~2-3 minutes after starting fakedata), you can:
+
+- **Query your data locally** using the Connector web UI (DuckDB SQL against Parquet) — no cloud dependency
+- **View the dashboard** at [bytefreezer.com](https://bytefreezer.com) — service health, statistics, activity, and dataset status
+- **Apply transformations** — rename fields, filter records, enrich with GeoIP
+- **Export to destinations** — Elasticsearch, webhooks, stdout, or build your own
+
+Everything runs on your host. The control plane on bytefreezer.com only manages configuration and health — it never sees your data.
 
 ## Contents
 

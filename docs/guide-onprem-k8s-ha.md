@@ -2,11 +2,32 @@
 
 Deploy the ByteFreezer processing stack in high-availability mode with 3x replicas for receiver, piper, and packer. Connector and proxy remain single-instance. Control plane runs on bytefreezer.com for coordination. Processing, storage, and proxy are self-hosted in your cluster -- your data stays on your infrastructure.
 
-**Objective:** Deploy and verify a fault-tolerant on-prem stack on Kubernetes. Confirm that killing any single pod does not interrupt data flow.
+**Time to complete:** ~15 minutes.
 
-**Time to complete:** 30-40 minutes (manual), 15-20 minutes (Claude + MCP).
+> **Fault-tolerant deployment.** Same pipeline as the standard K8s guide, but with 3x replicas, PodDisruptionBudgets, and anti-affinity rules. Kill any pod — data keeps flowing.
 
 > **Do not send sensitive or production data to bytefreezer.com.** The control plane on bytefreezer.com is a shared test platform. Your data stays in your cluster, but the control plane is not secured for production use.
+
+## What This Guide Deploys
+
+This guide sets up the full pipeline with high availability in your Kubernetes cluster:
+
+| Component | Replicas | What it does |
+|-----------|----------|-------------|
+| **Proxy** | 1 | Collects syslog data (in-cluster or on an edge host) |
+| **Receiver** | 3 | Receives data from proxy, writes raw batches to MinIO |
+| **Piper** | 3 | Transforms and processes raw data (file-lock coordination) |
+| **Packer** | 3 | Compresses processed data into Parquet files (deduplication) |
+| **MinIO** | 1 | S3-compatible object storage (or bring your own S3/MinIO cluster) |
+| **Connector** | 1 | Query engine — run SQL against your Parquet files locally via DuckDB |
+| **Fakedata** | 1 | Generates simulated syslog traffic so you have data flowing immediately |
+
+Once data flows through the pipeline (~2-3 minutes after starting fakedata), you can:
+
+- **Query your data locally** using the Connector (DuckDB SQL against Parquet) — no cloud dependency
+- **Kill any pod** and confirm data flow continues uninterrupted
+- **View the dashboard** at [bytefreezer.com](https://bytefreezer.com) — all replicas visible on the service health page
+- **Drain a node** and watch pods reschedule without data loss
 
 ## Contents
 
