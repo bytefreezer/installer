@@ -18,6 +18,10 @@ claude mcp add --transport http bytefreezer \
 
 Make sure to restart claude code session, so new mcp server recognized.
 
+Ask Claude Code to verify bytefreezer mcp
+
+> *"please see if bytefreezer mcp is accessible"*
+
 Then tell Claude what you want:
 
 > *"Deploy a full on-prem ByteFreezer stack with Docker Compose on this host. Create an account, tenant, and syslog dataset. Start fakedata and verify data flows to parquet."*
