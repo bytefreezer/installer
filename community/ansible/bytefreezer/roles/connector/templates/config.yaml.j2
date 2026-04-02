@@ -1,0 +1,43 @@
+# ByteFreezer Connector Configuration
+# Managed by Ansible
+
+logging:
+  level: info
+
+server:
+  port: {{ connector_api_port }}
+
+control:
+  url: "{{ control_service_url }}"
+  api_key: "{{ vault_control_service_api_key }}"
+  account_id: "{{ control_service_account_id | default('') }}"
+
+health_reporting:
+  enabled: true
+  report_interval: 30
+  timeout_seconds: 10
+  register_on_startup: true
+
+s3:
+  endpoint: "{{ s3_endpoint }}"
+  bucket: "packer"
+  region: "{{ s3_region }}"
+  access_key: "{{ vault_s3_access_key | default(minio_root_user) }}"
+  secret_key: "{{ vault_s3_secret_key | default(minio_root_password) }}"
+  use_ssl: {{ s3_use_ssl | lower }}
+
+query:
+  tenant_id: ""
+  dataset_id: ""
+  sql: "SELECT * FROM read_parquet('PARQUET_PATH', hive_partitioning=true, union_by_name=true) LIMIT 100"
+
+destination:
+  type: stdout
+  config: {}
+
+cursor:
+  file: /tmp/cursor.json
+
+schedule:
+  interval_seconds: 60
+  batch_size: 1000

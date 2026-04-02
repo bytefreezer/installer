@@ -1,0 +1,61 @@
+# ByteFreezer Packer Configuration
+# Managed by Ansible
+
+app:
+  name: "bytefreezer-packer"
+  version: "1.0.0"
+
+server:
+  api_port: {{ packer_api_port }}
+
+bytefreezer:
+  spool_path: /var/spool/bytefreezer-packer
+  cache_path: /var/cache/bytefreezer-packer
+
+s3source:
+  bucket_name: "{{ s3_buckets.piper }}"
+  region: "{{ s3_region }}"
+  endpoint: "{{ s3_endpoint }}"
+  ssl: {{ s3_use_ssl | lower }}
+  access_key: "{{ vault_s3_access_key | default(minio_root_user) }}"
+  secret_key: "{{ vault_s3_secret_key | default(minio_root_password) }}"
+
+control_service:
+  enabled: true
+  control_url: "{{ control_service_url }}"
+  api_key: "{{ vault_control_service_api_key }}"
+  account_id: "{{ control_service_account_id | default('') }}"
+  timeout: 30
+
+parquet:
+  max_file_size_mb: {{ packer_parquet_max_size_mb }}
+  timeout_seconds: 1200
+  compression: "zstd"
+  keep_source: false
+  streaming_mode: true
+
+housekeeping:
+  enabled: true
+  interval_seconds: 30
+  testing_interval_seconds: 15
+  cleanup:
+    enabled: true
+    processing_dir_max_age_hours: 2
+    orphaned_files_max_age_hours: 24
+    lock_cleanup:
+      enabled: true
+      stale_threshold_minutes: 5
+
+otel:
+  enabled: false
+  metrics_host: "0.0.0.0"
+  metrics_port: {{ packer_metrics_port }}
+
+health_reporting:
+  enabled: true
+  report_interval: 30
+  timeout_seconds: 10
+  register_on_startup: true
+
+error_tracking:
+  enabled: true

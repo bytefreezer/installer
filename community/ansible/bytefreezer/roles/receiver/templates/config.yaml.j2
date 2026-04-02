@@ -1,0 +1,62 @@
+# ByteFreezer Receiver Configuration
+# Managed by Ansible
+
+app:
+  name: "bytefreezer-receiver"
+  version: "1.0.0"
+
+server:
+  api_port: {{ receiver_api_port }}
+
+protocols:
+  webhook:
+    enabled: true
+    port: {{ receiver_webhook_port }}
+    max_payload_size: 10485760
+
+bytefreezer:
+  upload_worker_count: 10
+  spool_path: "/var/spool/bytefreezer-receiver"
+
+s3destination:
+  bucket_name: "{{ s3_buckets.intake }}"
+  region: "{{ s3_region }}"
+  endpoint: "{{ s3_endpoint }}"
+  ssl: {{ s3_use_ssl | lower }}
+  access_key: "{{ vault_s3_access_key | default(minio_root_user) }}"
+  secret_key: "{{ vault_s3_secret_key | default(minio_root_password) }}"
+
+control_service:
+  enabled: true
+  control_url: "{{ control_service_url }}"
+  api_key: "{{ vault_control_service_api_key }}"
+  account_id: "{{ control_service_account_id | default('') }}"
+  timeout: 30
+
+housekeeping:
+  enabled: true
+  interval_seconds: 30
+
+dlq:
+  enabled: true
+  directory: "/var/spool/bytefreezer-receiver/dlq"
+  retry_attempts: 4
+  retry_interval_seconds: 60
+  cleanup_interval_seconds: 300
+  max_age_days: 7
+
+otel:
+  enabled: false
+  service_name: "bytefreezer-receiver"
+  prometheus_mode: true
+  metrics_host: "0.0.0.0"
+  metrics_port: {{ receiver_metrics_port }}
+
+health_reporting:
+  enabled: true
+  report_interval: 30
+  timeout_seconds: 10
+  register_on_startup: true
+
+error_tracking:
+  enabled: true

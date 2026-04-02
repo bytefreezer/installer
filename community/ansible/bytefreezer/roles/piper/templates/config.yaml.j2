@@ -1,0 +1,80 @@
+# ByteFreezer Piper Configuration
+# Managed by Ansible
+
+app:
+  name: "piper"
+  version: "1.0.0"
+  log_level: "info"
+  deployment_type: "on_prem"
+
+server:
+  api_port: {{ piper_api_port }}
+
+s3_source:
+  bucket_name: "{{ s3_buckets.intake }}"
+  region: "{{ s3_region }}"
+  endpoint: "{{ s3_endpoint }}"
+  ssl: {{ s3_use_ssl | lower }}
+  access_key: "{{ vault_s3_access_key | default(minio_root_user) }}"
+  secret_key: "{{ vault_s3_secret_key | default(minio_root_password) }}"
+  poll_interval: "30s"
+
+s3_destination:
+  bucket_name: "{{ s3_buckets.piper }}"
+  region: "{{ s3_region }}"
+  endpoint: "{{ s3_endpoint }}"
+  ssl: {{ s3_use_ssl | lower }}
+  access_key: "{{ vault_s3_access_key | default(minio_root_user) }}"
+  secret_key: "{{ vault_s3_secret_key | default(minio_root_password) }}"
+
+s3_geoip:
+  bucket_name: "{{ s3_buckets.geoip }}"
+  region: "{{ s3_region }}"
+  endpoint: "{{ s3_endpoint }}"
+  ssl: {{ s3_use_ssl | lower }}
+  access_key: "{{ vault_s3_access_key | default(minio_root_user) }}"
+  secret_key: "{{ vault_s3_secret_key | default(minio_root_password) }}"
+
+processing:
+  max_concurrent_jobs: {{ piper_max_concurrent_jobs }}
+  job_timeout_seconds: 600
+  retry_attempts: 3
+  retry_backoff: "exponential"
+  buffer_size: 1000
+
+pipeline:
+  config_refresh_interval: "5m"
+  enable_geoip: false
+
+monitoring:
+  enabled: false
+  mode: "prometheus"
+  metrics_host: "0.0.0.0"
+  metrics_port: {{ piper_metrics_port }}
+
+control_service:
+  enabled: true
+  control_url: "{{ control_service_url }}"
+  api_key: "{{ vault_control_service_api_key }}"
+  account_id: "{{ control_service_account_id | default('') }}"
+  timeout: 30
+
+housekeeping:
+  enabled: true
+  interval_seconds: 30
+
+dlq:
+  enabled: true
+  retry_attempts: 4
+  retry_interval_seconds: 60
+  cleanup_interval_seconds: 3600
+  max_age_days: 7
+
+health_reporting:
+  enabled: true
+  report_interval: 30
+  timeout_seconds: 10
+  register_on_startup: true
+
+error_tracking:
+  enabled: true

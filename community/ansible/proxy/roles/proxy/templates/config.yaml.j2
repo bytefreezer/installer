@@ -1,0 +1,48 @@
+# ByteFreezer Proxy Configuration
+# Managed by Ansible
+
+app:
+  name: "bytefreezer-proxy"
+  version: "1.0.0"
+
+account_id: "{{ control_service_account_id }}"
+bearer_token: "{{ control_service_bearer_token }}"
+control_url: "{{ control_service_url }}"
+config_mode: "control-only"
+
+server:
+  api_port: {{ proxy_api_port }}
+
+receiver:
+  base_url: "{{ receiver_url }}"
+  timeout_seconds: 30
+
+config_polling:
+  enabled: true
+  interval_seconds: 30
+  timeout_seconds: 10
+  retry_on_error: true
+
+batching:
+  enabled: true
+  max_lines: 10000
+  max_bytes: 10485760
+  timeout_seconds: 30
+  compression_enabled: true
+  compression_level: 6
+
+spooling:
+  enabled: true
+  directory: "/var/spool/bytefreezer-proxy"
+  max_size_bytes: 1073741824
+  retry_attempts: 3
+  retry_interval_seconds: 60
+
+health_reporting:
+  enabled: true
+  report_interval: 30
+  timeout_seconds: 10
+  register_on_startup: true
+
+error_tracking:
+  enabled: true

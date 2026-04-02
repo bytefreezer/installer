@@ -4,7 +4,7 @@ Self-hosted deployment packages for ByteFreezer data processing pipeline.
 
 ## Deploy with Claude + MCP
 
-Skip the manual steps. Connect [Claude Code](https://docs.anthropic.com/en/docs/claude-code) to the ByteFreezer MCP server and describe your deployment in plain English — Claude creates accounts, generates configs, deploys services, and verifies the pipeline end to end.
+Skip the manual steps. Connect [Claude Code](https://docs.anthropic.com/en/docs/claude-code) to the ByteFreezer MCP server and describe your deployment in plain English -- Claude creates accounts, generates configs, deploys services, and verifies the pipeline end to end.
 
 Make sure your claude code is running,
 
@@ -24,37 +24,55 @@ Ask Claude Code to verify bytefreezer mcp
 
 Then read one of the guides below.
 
-Claude handles everything — account creation, config generation, deployment, dataset assignment, and verification. Works with Docker Compose, Kubernetes (Helm), systemd, or standalone binaries.
+Claude handles everything -- account creation, config generation, deployment, dataset assignment, and verification. Works with Docker Compose, Kubernetes (Helm), systemd, or standalone binaries.
 
 Each deploy guide builds a bytefreezer demo. deploying demo data feed adn allowing you to see a data via UI Dashboard for managed deploy, or via connector component for on prem deploys.
 
 ---
 
+## Tested Deployment Guides (MCP-automated)
+
+These guides have full MCP runbook support with automated config generation,
+deployment, pipeline verification, and cleanup.
+
 | Guide | Description |
 |-------|-------------|
-| [Managed Quickstart](docs/guide-managed.md) | Proxy test only — deploy a single proxy, we handle the rest | 
+| [Managed Quickstart](docs/guide-managed.md) | Proxy test only -- deploy a single proxy, we handle the rest |
 | [On-Prem: Docker Compose](docs/guide-onprem-docker.md) | Full stack on a single host, your data stays local |
 | [On-Prem: Kubernetes](docs/guide-onprem-k8s.md) | Full stack on K8s with Helm charts |
-| [Deploy with Claude + MCP](#deploy-with-claude--mcp) | AI-assisted deployment using Claude Code |
-| Post-deployment content is included in each guide above | Dashboard overview, transformations, connector, demo vs. production |
+| [On-Prem: HA Kubernetes](docs/guide-onprem-k8s-ha.md) | 3x replicas, PDBs, anti-affinity, failure tested |
+
+Post-deployment content is included in each guide above: dashboard overview, transformations, connector, demo vs. production.
 
 ---
 
-## Deployment Options
+## Tested Deployment Targets
 
-| Platform | Directory | Description |
+| Platform | Directory | MCP Runbook |
 |----------|-----------|-------------|
-| **Kubernetes** | | |
-| [Helm Charts](#kubernetes-helm) | `helm/` | Helm charts for any K8s cluster |
-| [Azure AKS](#azure-aks) | `azure/aks/` | Terraform for Azure Kubernetes Service |
-| [GCP GKE](#gcp-gke) | `gcp/gke/` | Terraform for Google Kubernetes Engine |
-| **Serverless Containers** | | |
-| [AWS ECS Fargate](#aws-ecs-fargate) | `ecs/` | CloudFormation + Terraform |
-| [Azure Container Instances](#azure-container-instances) | `azure/container-instances/` | Terraform |
-| [GCP Cloud Run](#gcp-cloud-run) | `gcp/cloud-run/` | Terraform |
-| **Other** | | |
-| [Docker Compose](#docker-compose) | `docker/` | Single-host or small deployments |
-| [Ansible](#ansible) | `ansible/` | Bare metal / VMs |
+| **Docker Compose** | `docker/` | `bf_runbook name=onprem-full-docker-compose` |
+| **Kubernetes (Helm)** | `helm/` | `bf_runbook name=onprem-full-k8s` |
+| **Kubernetes HA (Helm)** | `helm/` | `bf_runbook name=onprem-ha-k8s` |
+| **Managed Proxy** | `docker/` | `bf_runbook name=proxy-managed-docker-compose` |
+
+---
+
+## Community Deployment Guides
+
+These targets have config keys aligned with verified deployments but have **not been
+end-to-end tested** with the MCP runtime. See [community/README.md](community/README.md)
+for details and known limitations.
+
+| Platform | Directory | Notes |
+|----------|-----------|-------|
+| **Ansible** | `community/ansible/` | Bare metal / VMs, systemd services |
+| **Azure AKS** | `community/azure/aks/` | Terraform, uses Helm chart |
+| **Azure Container Instances** | `community/azure/container-instances/` | Terraform |
+| **AWS ECS Fargate** | `community/ecs/` | CloudFormation + Terraform |
+| **GCP GKE** | `community/gcp/gke/` | Terraform, uses Helm chart |
+| **GCP Cloud Run** | `community/gcp/cloud-run/` | Terraform, no UDP support |
+
+---
 
 ## Architecture
 
@@ -64,6 +82,7 @@ ByteFreezer consists of two deployment units:
    - Receiver: HTTP webhook receiver, stores raw data to S3
    - Piper: Data pipeline processing, transforms raw data
    - Packer: Compresses processed data into Parquet files
+   - Connector: DuckDB query engine for parquet files
 
 2. **Proxy** (`proxy`) - Deploy at edge locations
    - Collects data and forwards to the processing stack
@@ -87,8 +106,11 @@ ByteFreezer consists of two deployment units:
                                        |        |                  |
                                        |   +----+----+             |
                                        |   | Packer  |             |
-                                       |   +---------+             |
-                                       |                           |
+                                       |   +----+----+             |
+                                       |        |                  |
+                                       |   +----+-----+            |
+                                       |   | Connector |            |
+                                       |   +----------+            |
                                        +---------------------------+
 ```
 
@@ -123,129 +145,6 @@ See [helm/bytefreezer/README.md](helm/bytefreezer/README.md) for configuration o
 
 ---
 
-## Azure AKS
-
-Deploy to Azure Kubernetes Service using Terraform.
-
-```bash
-cd azure/aks/bytefreezer/terraform
-
-# Configure
-cat > terraform.tfvars <<EOF
-control_service_url     = "https://api.bytefreezer.com"
-control_service_api_key = "YOUR_API_KEY"
-location                = "eastus"
-EOF
-
-terraform init
-terraform apply
-```
-
-See [azure/aks/](azure/aks/) for full configuration.
-
----
-
-## Azure Container Instances
-
-Serverless containers on Azure (similar to ECS Fargate).
-
-```bash
-cd azure/container-instances/bytefreezer/terraform
-
-# Configure
-cat > terraform.tfvars <<EOF
-control_service_url     = "https://api.bytefreezer.com"
-control_service_api_key = "YOUR_API_KEY"
-location                = "eastus"
-EOF
-
-terraform init
-terraform apply
-```
-
----
-
-## GCP GKE
-
-Deploy to Google Kubernetes Engine using Terraform.
-
-```bash
-cd gcp/gke/bytefreezer/terraform
-
-# Configure
-cat > terraform.tfvars <<EOF
-project_id              = "your-gcp-project"
-control_service_url     = "https://api.bytefreezer.com"
-control_service_api_key = "YOUR_API_KEY"
-region                  = "us-central1"
-EOF
-
-terraform init
-terraform apply
-```
-
----
-
-## GCP Cloud Run
-
-Serverless containers on Google Cloud.
-
-```bash
-cd gcp/cloud-run/bytefreezer/terraform
-
-# Configure
-cat > terraform.tfvars <<EOF
-project_id              = "your-gcp-project"
-control_service_url     = "https://api.bytefreezer.com"
-control_service_api_key = "YOUR_API_KEY"
-region                  = "us-central1"
-EOF
-
-terraform init
-terraform apply
-```
-
-**Note:** Cloud Run doesn't support UDP, so proxy functionality is limited to HTTP.
-
----
-
-## AWS ECS Fargate
-
-Deploy to AWS ECS Fargate using CloudFormation or Terraform.
-
-### CloudFormation
-
-```bash
-cd ecs/bytefreezer
-
-aws cloudformation create-stack \
-  --stack-name bytefreezer \
-  --template-body file://cloudformation.yaml \
-  --parameters \
-    ParameterKey=VpcId,ParameterValue=vpc-xxx \
-    ParameterKey=SubnetIds,ParameterValue="subnet-a,subnet-b" \
-    ParameterKey=ControlServiceUrl,ParameterValue=https://api.bytefreezer.com \
-    ParameterKey=ControlServiceApiKey,ParameterValue=YOUR_API_KEY \
-  --capabilities CAPABILITY_IAM
-```
-
-### Terraform
-
-```bash
-cd ecs/bytefreezer/terraform
-
-# Configure
-cp terraform.tfvars.example terraform.tfvars
-# Edit terraform.tfvars
-
-terraform init
-terraform apply
-```
-
-See [ecs/README.md](ecs/README.md) for full configuration.
-
----
-
 ## Docker Compose
 
 Deploy to single hosts or small environments.
@@ -259,36 +158,9 @@ cp .env.example .env
 
 # Start with MinIO
 docker compose --profile with-minio up -d
-
-# Optional: Enable Prometheus
-docker compose --profile with-minio --profile with-prometheus up -d
 ```
 
 See [docker/README.md](docker/README.md) for full configuration.
-
----
-
-## Ansible
-
-Deploy to bare metal servers or VMs.
-
-```bash
-cd ansible/bytefreezer
-
-# Create inventory
-cp inventory.yml.example inventory.yml
-# Edit with your servers
-
-# Create secrets
-cp vars/secrets.yml.example vars/secrets.yml
-# Edit with API key
-ansible-vault encrypt vars/secrets.yml
-
-# Deploy
-ansible-playbook -i inventory.yml playbook.yml --ask-vault-pass
-```
-
-See [ansible/README.md](ansible/README.md) for full configuration.
 
 ---
 
@@ -324,18 +196,6 @@ All deployment types support Prometheus metrics:
 | Receiver | 9091 | `/metrics` |
 | Piper | 9092 | `/metrics` |
 | Packer | 9093 | `/metrics` |
-
----
-
-## Comparison
-
-| Feature | Helm | Docker | ECS | ACI | Cloud Run | Ansible |
-|---------|------|--------|-----|-----|-----------|---------|
-| Auto-scaling | Yes | Manual | Yes | Manual | Yes | Manual |
-| UDP Support | Yes | Yes | Yes | Yes | No | Yes |
-| Managed K8s | - | - | - | - | - | - |
-| Serverless | No | No | Yes | Yes | Yes | No |
-| Min Cost | Low | Low | Medium | Low | Low | Low |
 
 ---
 
